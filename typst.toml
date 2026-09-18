@@ -1,0 +1,11 @@
+[package]
+name = "centauri"
+version = "0.1.0"
+entrypoint = "lib.typ"
+authors = ["Devansh Parapalli <@DevParapalli>"]
+license = "MIT"
+description = "Light-first print design system for professional documents, derived from Proxima."
+keywords = ["design system", "report", "proposal", "rfp", "template"]
+categories = ["office", "report"]
+compiler = "0.15.0"
+exclude = ["examples", "tests", "fonts"]
