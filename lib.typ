@@ -20,6 +20,6 @@
   revision-history, request-list, current-section,
   slide, claim, exhibit, title-slide, section-slide, outline-slide, statement, quote-slide,
   compare, explain, table-slide, code-slide, steps-slide, exercise, appendix, close,
-  metric, stats, columns-chart, bars-chart, split, display-slide, cols, hl, notes,
+  metric, stats, tile, columns-chart, bars-chart, split, display-slide, cols, hl, notes,
   ..rest,
 ) = kit

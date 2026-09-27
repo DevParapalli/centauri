@@ -28,6 +28,14 @@ for spec in "1:1/3 | Internal" "2:CLIENT" "2:2/3 | Confidential" "3:3/3 | Public
 done
 if pdftotext -f 3 -l 3 -layout "$out/f.pdf" - | grep -qF "CLIENT"; then echo "FAIL  furniture page 3 still shows client slot"; fail=1; else echo "ok    furniture page 3 cleared"; fi
 
+compile tests/first-page.typ "$out/p.pdf" 2>/dev/null
+for want in "BRIEFHEAD" "BRIEFFOOT"; do
+  if pdftotext -f 1 -l 1 -layout "$out/p.pdf" - | grep -qF "$want"; then echo "ok    first page furniture $want"; else echo "FAIL  first page furniture $want"; fail=1; fi
+done
+
+# A deck accent other than the default must converge: no warnings at all.
+if compile tests/deck-accent.typ "$out/d.pdf" 2>"$out/err" && [ ! -s "$out/err" ]; then echo "ok    tests/deck-accent.typ"; else echo "FAIL  tests/deck-accent.typ"; cat "$out/err"; fail=1; fi
+
 # Components must read the tone-resolved palette, never the light one captured by make().
 if awk '/^    theme: t,/{f=1} f && /\<p\./{print "      " FILENAME ":" NR; c++} END{exit !c}' src/make.typ; then
   echo "FAIL  components reference the light palette directly"; fail=1

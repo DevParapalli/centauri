@@ -13,7 +13,7 @@
 #import "make.typ": make, tone, _size, _accent
 #import "tokens.typ": ink-on
 
-#let _deck = state("centauri-deck", (projection: "light", label: none, date: none, presenter: none, aspect: "16:9", logos: (left: none, right: none), light: auto, bloom: true))
+#let _deck = state("centauri-deck", (projection: "light", accent: "indigo", label: none, date: none, presenter: none, aspect: "16:9", logos: (left: none, right: none), light: auto, bloom: true))
 #let _slide-no = counter("centauri-slide")
 #let _section = state("centauri-deck-section", none)
 #let _slide-notes = state("centauri-slide-notes", none)
@@ -125,7 +125,7 @@
     _size.update("deck")
     _tone.update(projection)
     _accent.update(accent)
-    _deck.update((projection: projection, label: label, date: date, presenter: presenter, aspect: aspect, logos: logos, light: light, bloom: bloom))
+    _deck.update((projection: projection, accent: accent, label: label, date: date, presenter: presenter, aspect: aspect, logos: logos, light: light, bloom: bloom))
     body
     // No auto-fit: a slide that runs onto a second page fails the build.
     if mode == "slides" {
@@ -160,9 +160,8 @@
     context {
       let n = _slide-no.get().first()
       let d = _deck.get()
-      let before = (base.accent-now)()
       let pj = if projection == auto { d.projection } else { projection }
-      let a = if accent == auto { before } else { accent }
+      let a = if accent == auto { d.accent } else { accent }
       let q = palette(a, pj)
       let g = ground(q, kind)
       let lt = if light != auto { light } else if d.light != auto { d.light } else { (x: rand(n, 1), y: rand(n, 2)) }
@@ -178,7 +177,7 @@
         set text(fill: q.ink-mid)
         body
         _tone.update(d.projection)
-        _accent.update(before)
+        _accent.update(d.accent)
       }
       let src = if source != none { place(bottom + left, dy: 0.35cm, text(size: S().label + 1pt, fill: q.ink-low)[Source: #source]) }
       if mode == "titles" {
@@ -431,7 +430,7 @@
     grid(columns: (auto, 1fr), column-gutter: 0.5cm, row-gutter: 0.3cm, align: (right + horizon, left + horizon),
       ..items.enumerate().map(((i, it)) => (
         text(size: S().small, weight: t.weight.strong, fill: q.ink-mid, it.at(0)),
-        layout(sz => box(width: sz.width * it.at(1) / top, height: 1.15cm, radius: 8pt, fill: tones.at(calc.rem(i, 2)), inset: (right: 6pt),
+        layout(sz => box(width: calc.max(sz.width * it.at(1) / top, 2.4cm), height: 1.15cm, radius: 8pt, fill: tones.at(calc.rem(i, 2)), inset: (right: 6pt),
           align(right + horizon, box(inset: (x: 10pt, y: 3pt), radius: t.radius.full, fill: tile-fill(q),
             text(size: S().small, weight: t.weight.strong, fill: q.ink-hi, number-width: "tabular", it.at(2, default: str(it.at(1)))))))),
       )).flatten())
@@ -484,11 +483,12 @@
   })
 
   /// Grid of numbers: tabular figures, numerals right-aligned, no vertical rules.
-  let table-slide(title: none, columns: 2, header: none, source: none, projection: auto, accent: auto, ..cells) = on-page(projection, accent, kind: "table", title: title, source: source, context {
+  let table-slide(title: none, columns: 2, header: none, align: auto, source: none, projection: auto, accent: auto, ..cells) = on-page(projection, accent, kind: "table", title: title, source: source, context {
     let q = pal()
     if title != none { slide-title(q, title) }
     let n = if type(columns) == int { columns } else { columns.len() }
-    (base.data-table)(columns: columns, header: header, align: (x, _) => if x == 0 { left } else { right }, ..cells)
+    // Numbers right-aligned by default; pass align: left for tables of text.
+    (base.data-table)(columns: columns, header: header, align: if align == auto { (x, _) => if x == 0 { left } else { right } } else { align }, ..cells)
   })
 
   /// Code listing of at most 15 lines. `highlight` takes line numbers set on an accent band.
@@ -521,7 +521,7 @@
   /// exercises stand apart from content slides.
   let exercise(title: none, task: none, minutes: none, output: none, projection: auto, accent: auto) = context {
     let a = if accent != auto { accent } else {
-      let now = (base.accent-now)()
+      let now = _deck.get().accent
       if now == "ember" { "teal" } else { "ember" }
     }
     on-page(projection, a, kind: "exercise", title: title, context {
@@ -609,6 +609,7 @@
     quote-slide: quote-slide,
     explain: explain,
     stats: stats,
+    tile: (body) => context tile(pal(), body),
     columns-chart: columns-chart,
     bars-chart: bars-chart,
     split: split,

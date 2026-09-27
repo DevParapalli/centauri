@@ -108,19 +108,29 @@
   )
 
   // Header and footer both read furniture as it stood at the top of the page.
-  let header-for(q, tone) = context {
+  // Page 1's header is laid out before the document's first furniture update takes
+  // effect, so the document's own settings are passed in as `first` and applied there.
+  let with-first(f, first) = if first == none { f } else {(
+    header: f.header + first.header,
+    footer: f.footer + first.footer,
+    sensitivity: if first.sensitivity == auto { f.sensitivity } else { first.sensitivity },
+  )}
+
+  let header-for(q, tone, first: none) = context {
     [#metadata(none) <centauri-page-top>]
     let f = _furniture.get()
+    if here().page() == 1 { f = with-first(f, first) }
     set text(fill: q.ink-mid, size: S().small)
     row(f, f.header, tone, q, false)
     v(-4pt)
     line(length: 100%, stroke: 0.5pt + q.hairline)
   }
 
-  let footer-for(q, tone) = context {
+  let footer-for(q, tone, first: none) = context {
     let page = here().page()
     let tops = query(<centauri-page-top>).filter(m => m.location().page() == page)
     let f = if tops.len() > 0 { _furniture.at(tops.first().location()) } else { _furniture.get() }
+    if page == 1 { f = with-first(f, first) }
     set text(fill: q.ink-mid, size: S().small)
     line(length: 100%, stroke: 0.5pt + q.hairline)
     v(-4pt)
@@ -233,8 +243,8 @@
       margin: (top: 2.7cm, bottom: 2.3cm, left: margins.left, right: margins.right),
       header-ascent: 35%,
       footer-descent: 35%,
-      header: header-for(p, "light"),
-      footer: footer-for(p, "light"),
+      header: header-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity)),
+      footer: footer-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity)),
       background: if stage == "draft" {
         place(center + horizon, rotate(-35deg, text(size: sz.watermark, weight: 600, fill: color.mix((p.ink-hi, 5%), (p.paper, 95%), space: rgb), tracking: 0.05em)[DRAFT]))
       },
