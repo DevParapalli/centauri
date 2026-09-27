@@ -1,91 +1,175 @@
 # Centauri
 
-Centauri is the print half of the Proxima design system. It is light-first, uses the Proxima token set flattened for opaque print output, and provides page furniture, covers, drafting controls and document components for reports, proposals and RFP responses.
+Centauri is the print and slide half of the Proxima design system. It is light-first, builds on the tokens Proxima publishes in `tokens.toml`, and provides page furniture, covers, drafting controls and components for reports, proposals, RFP responses, handbooks, handouts, letters and slide decks.
+
+## Releases
+
+Centauri is released in lockstep with Proxima. Proxima leads: a Proxima release tags `tokens.toml`, and the Centauri release with the same version vendors that file. Centauri 0.2.0 carries the tokens from Proxima 0.2.0.
+
+`src/tokens.toml` MUST NOT be edited by hand. It is written by:
+
+```sh
+uv run scripts/sync-tokens.py --ref v0.2.0            # from github.com/DevParapalli/proxima
+uv run scripts/sync-tokens.py --from ../proxima/tokens.toml
+uv run scripts/sync-tokens.py --ref v0.2.0 --check    # exits 1 when the copy differs
+```
 
 ## Requirements
 
 - Typst 0.15.0 or later.
-- Fonts: Outfit (variable), Instrument Serif and IBM Plex Mono. All three are OFL-1.1 and are included in `fonts/` of the source repository. Documents MUST be compiled with these fonts available, for example `typst compile --font-path fonts document.typ`. Without them Typst falls back to other fonts and page breaks change.
+- Fonts: Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono (Braille Institute) for text and code, and Newsreader for quotations. All are OFL-1.1 without a Reserved Font Name and are in `fonts/` of the source repository with their licence files. Typefaces are Centauri's own; Proxima sets the same tokens in Outfit for screens. Documents MUST be compiled with these fonts available, for example `typst compile --font-path fonts document.typ`. Without them Typst falls back to other fonts and page breaks change.
 
 ## Usage
 
+One import serves every kind of output.
+
 ```typ
-#import "@preview/centauri:0.1.0": *
+#import "@preview/centauri:0.2.0": *
 
-#show: centauri.with(
-  title: "Example report",
-  stage: "draft",
-  lint: ("\u{2014}",),
-  header: (left: image("our-logo.svg", height: 14pt), right: image("partner.svg", height: 18pt)),
-  sensitivity: "Internal",
-)
+#show: centauri.with(kind: "report", accent: "teal", title: "Example report")
 
-#cover(eyebrow: ("Report", "v0.1"), title: [Example report], meta: (([Owner], [Name]),))[]
-#outline()
-
-= First section
+#cover(title: [Example report], meta: (([Owner], [Name]),))[]
+= Scope
+Body text.
 ```
 
-`examples/showcase.typ` renders every component.
+A deck uses the same import and the same components:
+
+```typ
+#import "@preview/centauri:0.2.0": *
+
+#show: centauri.with(kind: "deck", aspect: "16:9", accent: "ember", label: "Class 1")
+
+#title-slide(title: [What AI actually is], subtitle: [Four eras and a first call.])
+#slide(kicker: [Concept · 3 min], title: [One ticket, four eras])[
+  - Rules, classical ML, deep learning, generative AI
+]
+```
+
+Before the package is published, or to work against a checkout, import the entry file directly: `#import "../centauri/lib.typ": *`, compiling with `--root` set to a directory that contains both.
+
+## Kinds
+
+`kind` selects defaults. Any default MAY be overridden with the argument of the same name.
+
+| Kind | Orientation | Columns | Level 1 starts a page | Page limit | Sidenotes |
+|---|---|---|---|---|---|
+| `report`, `rfp`, `spec` | portrait | 1 | yes | none | footnotes |
+| `brief` | portrait | 1 | no | 1 | footnotes |
+| `handout` | portrait | 2 | no | none | footnotes |
+| `handbook` | portrait | 1 | yes | none | outer margin |
+| `wallchart` | landscape | 1 | no | none | footnotes |
+| `deck` | 16:9 or 4:3 | 1 | not applicable | none | not applicable |
+
+- `paper` is `"a4"` or `"us-letter"`. `orientation` is `"portrait"` or `"landscape"`. A4 and A3 share one ratio, so a landscape page prints on A3 by scaling.
+- When `max-pages` is set, compilation stops if the document is longer.
+- A level 1 heading that opens a page is set as a banner: a tinted band across the full page width, the number and title centred, an accent rule beneath. A level 1 heading that falls mid-page, or any level 1 heading in a multi-column layout, sits under a rule with its number beside it. `h1-style: "banner"` or `"rule"` forces one treatment.
+- Levels 2 to 6 are plain headings. Their numbers are set at the heading's own size and weight in low ink. `heading-numbers: "hang"` outdents numbers into the left margin so titles align with body text; `"none"` omits them.
+- `letter(sender, contact, recipient, date, subject, closing, signature, paper)` is a separate template for correspondence.
+
+## Type
+
+Heading sizes follow `size(hN) = body × φ^((6 − N) / k)`, so h6 is body size.
+
+| Scale | Body | k | h1 | h2 | h3 | h4 | h5 |
+|---|---|---|---|---|---|---|---|
+| Documents | 10 pt | 3 | 22.30 | 19.00 | 16.18 | 13.78 | 11.74 |
+| Decks | 20 pt | 2 | 66.6 | 52.4 | 41.2 | 32.4 | 25.4 |
+
+Weight falls as size rises in both scales. Documents set h1 at 500 and h6 at 700; decks set display type at 300.
+
+Every heading is set in Atkinson Hyperlegible Next. Newsreader is used only for quotations (`pull-quote`, `epigraph`, block `quote`) and `drop-cap`. `theme(document: (body: 11pt, k: 3))` changes a scale; for example, a handout printed at A5 SHOULD use a 13 to 14 pt body.
+
+## Accents
+
+Every Proxima accent (`indigo`, `teal`, `ember`, `lime`) is available in both tones. The accent MAY be set:
+
+- for the whole document, with `centauri(accent: "teal")`;
+- for one cover, slide or part, with `accent: "ember"` on that call;
+- from a point onward, with `use-accent("lime")`;
+- for one passage, with `with-accent("indigo")[...]`.
+
+The link colour for each accent is the first of accent, accent-deep and ink that reaches 4.5:1 on both the page and the cover ground. Compilation stops if a theme override breaks that.
 
 ## Page furniture
 
-Each inner page has three slots above the header rule and three below the footer rule, addressed as `left`, `center` and `right`.
-
-- A slot value MUST be content, `none`, `auto`, or a function that takes the page tone (`"light"` or `"dark"`) and returns content.
-- `auto` in the footer center renders the page as `1/N`, followed by ` | ` and the sensitivity label when one is set. `auto` in any other slot renders nothing.
-- `furniture(header: (..), footer: (..), sensitivity: ..)` updates the furniture. Keys that are not passed keep their value. Header and footer both read the furniture as it stood at the top of the page, so an update takes effect from the following page.
+Inner pages have left, centre and right slots above the header rule and below the footer rule. Each slot takes content, `none`, `auto`, or a function of the page tone. The header centre is empty by default; `auto` there opts in to the running head (the level 1 heading in force). `auto` in the footer centre is the page number followed by the sensitivity label. Set slots with `centauri(header: (center: [...]))`; change them from any point with `furniture(header: (center: [...]))`.
 
 ## Covers
 
-`cover(tone: "light" | "dark", eyebrow, title, subtitle, meta, heading, furniture, bloom)[body]` produces a full page and MAY appear anywhere in a document. With `heading: true` the title becomes a numbered level 1 heading and is listed in the contents. Dark covers use an accent bloom by default; `bloom: false` disables it.
-
-`tone` is a document state holding the active page tone, `"light"` or `"dark"`. A dark cover sets it to `"dark"` for its own page and restores `"light"` after it, and every component reads it, so the same `kpi` or `pill` carries the dark palette inside a dark cover without taking an argument. Custom cover content MAY read it with `context tone.get()`.
-
-Two things do not follow the tone, because Typst set rules cannot be contextual: a bare `#table` keeps the light hairline, and list markers keep the light low-ink colour. Use `data-table` for tables on a dark cover.
-
-## Figures and tables
-
-A `figure` caption sets the supplement and number in mono, then the caption text, left aligned, below the content for both figures and tables. Numbering is per document.
-
-`data-table` resolves its palette inside a context block, so Typst cannot see the table element inside it and counts such a figure as a figure. Pass `kind: table, supplement: [Table]` to have it counted and labelled as a table.
-
-## Stages
-
-The stage is read from `--input stage=...` and otherwise from the `stage` parameter.
-
-| Behaviour | draft | review | final |
-| --- | --- | --- | --- |
-| Watermark | shown | hidden | hidden |
-| `note` | shown | hidden | hidden |
-| Open `todo` | highlighted | highlighted | compilation fails |
-| `lint` match | highlighted | highlighted | compilation fails |
-| `tba` | marked | marked | marked |
-
-`tba` marks a deliberate gap. It renders a neutral marker at every stage, including final, and is not counted.
-
-## Contrast
-
-Link colour is the first of accent, accent-deep and ink that reaches a WCAG contrast ratio of 4.5:1 on both the page and the cover ground. State text is darkened toward ink until it reaches 4.5:1 on its fill. Compilation fails if a theme override sets a link colour below 4.5:1.
-
-## Themes
-
-`theme(accent: "indigo" | "teal" | "ember" | "lime")` returns the Proxima light and dark palettes, fonts, sizes, weights and radii. `make(theme)` returns every component bound to that theme. The default exports use the indigo accent.
-
-```typ
-#import "@preview/centauri:0.1.0": make, theme
-#let (centauri, cover, pill, ..rest) = make(theme(accent: "teal"))
-```
-
-A theme MAY be extended by dictionary addition, for example `theme() + (radius: (s: 4pt, m: 6pt, l: 9pt, full: 999pt))`.
+`cover(tone, accent, title, subtitle, meta, heading, furniture, bloom)[body]` produces a full page and MAY appear anywhere. With `heading: true` the title becomes a numbered level 1 heading and is listed in the contents. Covers carry an accent bloom by default; `bloom: false` prints a flat ground.
 
 ## Components
 
-`serif-em`, `eyebrow`, `chip`, `pill`, `status`, `delta`, `callout`, `rule-note`, `card`, `kpi`, `kv`, `data-table`, `qa-table`, `compliance-matrix`, `sig-block`, `req`, `todo`, `tba`, `note`, `assumption`, `dependency`, `decision`, `risk`, `issue`, `register-table`, `annexes`, `furniture`, `contrast`, `tone`.
+Documents and decks share: `chip`, `pill`, `status`, `delta`, `callout`, `rule-note`, `card`, `kpi`, `kv`, `data-table`, `qa-table`, `compliance-matrix`, `sig-block`, `req`, `todo`, `tba`, `note`, `assumption`, `dependency`, `decision`, `risk`, `issue`, `register-table`, `annexes`, `pull-quote`, `epigraph`, `drop-cap`, `sidenote`, `glossary`, `revision-history`, `request-list`, `current-section`, `part`, `furniture`, `use-accent`, `with-accent`.
+
+Decks follow the design board in `docs/deck-board.md` and Proxima's primitives: assertion–evidence content slides (a sentence title stating the takeaway, then one exhibit), one message per slide, a single body size, left-aligned text, and quiet chrome.
+
+### Grounds and projection
+
+`projection: "dark" | "light"` sets the whole deck.
+
+- **Dark:** content slides sit on Proxima's near-black with an accent bloom; section slides sit on the accent's 500 step, so a divider never flashes white.
+- **Light:** content slides are off-white with dark text and a faint accent bloom; section slides sit on the accent's 800 step.
+
+Accent steps come from a tonal ramp (50 to 950) built in OKLCH from each accent. Text on a section ground is whichever ink reads better on it.
+
+Each bloom sits at a light source `(x, y)`, where each value is a ratio of the page from 0 to 1 (`x: 1` is the right edge, `y: 1` the bottom). Without `light:`, each slide takes a fixed pseudo-random point from its frame number, so the deck varies but every build is identical. `light:` on the deck sets one point for all slides; on a slide, it sets that slide. `bloom: false` removes blooms.
+
+### Chrome
+
+- Top left and top right carry logos (`logos: (left: ..., right: ...)`); empty by default.
+- Bottom left carries the current section name. Bottom right carries the frame number; `number-at: "center"` moves it to the centre.
+- A `source:` line sits just above the footer on the left.
+
+### Type on slides
+
+Weight falls as size rises: display and h1 are set at 300–320, small headings at 560–650. Headlines MUST be in sentence case, MUST NOT end with a full stop (the build stops if one does), and SHOULD break where the sense breaks. Runts, widows and orphans are penalised.
+
+### Slides
+
+| Component | Use |
+|---|---|
+| `title-slide(title, subtitle, facts, author, date, number)` | Title set large and light; `facts` as chips; optional large accent numeral. |
+| `outline-slide(title, depth, current)` | Generated from the section slides; `depth: 2` lists every slide title. |
+| `section-slide(number, title, subtitle, preview)` | Accent ground. An index line gives the section's place (2 of 4), the title is set large and light, and up to `preview` glass cards list the slides in the section. |
+| `claim(title, source)[exhibit]` | Default content slide. `slide` is an alias. |
+| `exhibit(title, source)[chart]` | One chart or diagram; the title interprets, the exhibit shows data only. |
+| `statement(sub)[phrase]` | One phrase at display size beside an emphasis line; `hl[...]` marks key words. |
+| `quote-slide(attribution)[text]` | Quotation in the serif beside an emphasis line. |
+| `explain(title, ..rows)` | Terms and explanations in rows divided by hairlines. Use sparingly. |
+| `compare(title, left, right, pick)` | Two options on a shared baseline. |
+| `table-slide`, `code-slide`, `steps-slide`, `exercise`, `appendix`, `close` | As named; `exercise` takes a second accent. |
+| `metric`, `cols`, `hl`, `notes` | Helpers. |
+
+Two line types have distinct jobs: the emphasis line (thick, round-ended, accent, from the first line's cap height to the last line's baseline) marks a statement or quotation; the hairline divides rows and items. Every slide accepts `projection`, `accent` and `light` overrides.
+
+### Output modes
+
+Output modes are selected with `--input mode=`:
+
+- `slides` (default): one slide per page. A slide that runs onto a second page stops the build; the text is changed to fit, never the size.
+- `handout`: A4 pages with each slide and its speaker notes beneath.
+- `titles`: an A4 list of slide titles in order, grouped by section, for reviewing the argument before content is written.
+
+`notes[...]` carries the speaker script. It appears in handouts, and on the slides only with `--input notes=true`.
+
+Code blocks are highlighted with a theme generated from the palette in force, so highlighting follows the accent and the tone.
+
+## Changes in 0.2.0
+
+- Tokens are read from the vendored `tokens.toml`.
+- Golden-ratio type scale, all six heading levels styled.
+- `serif-em` is removed.
+- Deck support merged into the same entry point.
+- Accents MAY change per document, cover, slide, part or passage.
+- The header centre MAY carry the running head with `auto`; it is empty by default.
+- Eyebrows are removed everywhere. Level 1 headings open pages as banners; heading numbers match their heading's size.
+- New kinds, new components and `letter`.
 
 ## Tests
 
-`tests/run.sh` compiles the showcase and test documents from the repository root. It requires `typst` and `pdftotext`.
+`tests/run.sh` compiles the showcase and test documents from the repository root. It requires `typst` and `pdftotext`. The tests are not yet updated for 0.2.0.
 
 ## Licence
 

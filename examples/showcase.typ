@@ -24,18 +24,17 @@
 )
 
 #cover(
-  eyebrow: ("Centauri", "Print design system"),
-  title: [Centauri #serif-em[showcase]],
-  subtitle: [Light-first print design system derived from Proxima.],
+  title: [Centauri showcase],
+  subtitle: [Print and slide design system on Proxima's shared tokens.],
   meta: (
-    ([Version], [0.1.0]),
+    ([Version], [0.2.0, released with Proxima 0.2.0]),
     ([Stage], [draft by default; override with `--input stage=review` or `final`]),
     ([Fonts], [Outfit, Instrument Serif, IBM Plex Mono (OFL-1.1)]),
     ([Licence], [MIT]),
     ([Compiler], [Typst 0.15]),
   ),
 )[
-  This document exercises every component in Centauri 0.1.0. Each section states what the component does, then renders it.
+  This document exercises every component in Centauri 0.2.0. Each section states what the component does, then renders it.
 ]
 
 #outline(depth: 2)
@@ -47,7 +46,7 @@ Every inner page has three slots above the header rule and three below the foote
 #data-table(
   columns: (auto, 1fr, 1fr, 1fr),
   header: ([Row], [Left], [Center], [Right]),
-  [Header], [Logo], [Empty], [Logo],
+  [Header], [Logo], [Empty, or `auto` for the running head], [Logo],
   [Footer], [Empty], [`auto`: page as 1/N, then the sensitivity label], [Empty],
 )
 
@@ -100,13 +99,58 @@ This page shows the client logo slot at bottom left, the access note at bottom r
 
 == Typography
 
-Outfit carries all text at weight 380 for body and 480 to 540 for headings. IBM Plex Mono sets labels, identifiers and machine output. Instrument Serif appears at most once per page, through #serif-em[serif-em]. Body copy uses #strong[strong emphasis] sparingly, and links such as #link("https://typst.app")[typst.app] take the contrast-checked link colour.
+Outfit carries all text and every heading, at weight 380 for body and 480 to 560 for headings. IBM Plex Mono sets labels, identifiers and machine output. Instrument Serif is reserved for quotations and the drop cap. Body copy uses #strong[strong emphasis] sparingly, and links such as #link("https://typst.app")[typst.app] take the contrast-checked link colour.
 
-#eyebrow("Eyebrow", "Context")
 
 - Lists use a quiet marker in the low ink colour.
 - Facts such as ports, sizes and IDs use a chip: #chip[5432] #chip[INC-20417] #chip[n2-standard-8]
 - Inline code reads as `typst compile --font-path fonts showcase.typ`.
+
+== Type scale
+
+Heading sizes follow `size(hN) = body × φ^((6 − N) / 3)` for documents, so every third level is one factor of φ and h6 is body size. Slides use the same rule with 16pt body and two levels per φ.
+
+#data-table(
+  columns: (auto, auto, 1fr),
+  header: ([Level], [Size], [Sample]),
+  [h1], [22.30pt], text(size: 22.3pt, weight: 480, fill: rgb("#1B1D2E"))[Service review],
+  [h2], [19.00pt], text(size: 19pt, weight: 500, fill: rgb("#1B1D2E"))[Service review],
+  [h3], [16.18pt], text(size: 16.18pt, weight: 520, fill: rgb("#1B1D2E"))[Service review],
+  [h4], [13.78pt], text(size: 13.78pt, weight: 530, fill: rgb("#1B1D2E"))[Service review],
+  [h5], [11.74pt], text(size: 11.74pt, weight: 540, fill: rgb("#1B1D2E"))[Service review],
+  [h6], [10.00pt], text(size: 10pt, weight: 560, fill: rgb("#1B1D2E"))[Service review],
+)
+
+== Long-form components
+
+#epigraph(attribution: [Proxima design notes])[At 2am I do not need more information. I need to already know where to look.]
+
+#drop-cap("Every long-form piece MAY open with a drop cap: the first letter set large across three lines, with the opening words beside it. It is one of the two places the serif appears, the other being quotations. The paragraph is passed as a string so Centauri can decide where the capital ends and the text returns to the full measure.")
+
+#pull-quote(attribution: [Class 2, the paradigm card])[The cheapest option that meets the error budget wins.]
+
+A sidenote sits in the outer margin in `handbook` documents and becomes a footnote in every other kind.#sidenote[This one is a footnote, because the showcase is a report.]
+
+=== Glossary
+
+#glossary(
+  ("RAG", [Retrieval-augmented generation: fetch relevant passages, then generate an answer from them.]),
+  ("MCP", [Model Context Protocol: a standard way to expose tools and data to a model host.]),
+  ("Agent", [A loop that plans, calls tools, reads the result and stops on a condition.]),
+  ("A2A", [Agent-to-agent protocol for discovery and hand-offs between agents.]),
+)
+
+=== Revision history and requests
+
+#revision-history(
+  ([0.1], [18 Sep 2026], [DP], [First draft.]),
+  ([0.2], [25 Sep 2026], [DP], [Type scale, quotations, long-form components.]),
+)
+
+#request-list(
+  ([Current escalation matrix], [Client IT], [2 Oct 2026]),
+  ([Monthly ticket volume by queue, last 12 months], [Service desk], [5 Oct 2026]),
+)
 
 #rule-note[A rule note sets supporting detail in mono beside an accent rule.]
 
@@ -114,7 +158,7 @@ Outfit carries all text at weight 380 for body and 480 to 540 for headings. IBM 
 
 === Third-level heading
 
-Level 3 headings sit in the body size at a heavier weight. Numbering uses the `numbering` parameter; `section-word` sets the word in the level 1 eyebrow.
+Level 3 headings are one factor of φ above body size. Numbering uses the `numbering` parameter. A level 1 heading sits under a rule across the measure, with its number in the accent beside the title.
 
 == Colour and contrast
 
@@ -161,8 +205,10 @@ State text is darkened toward ink when needed so every pill reaches 4.5:1 on its
 Pick an accent by building the components from a theme:
 
 ```typ
-#import "@preview/centauri:0.1.0": make, theme
-#let (centauri, cover, pill, ..rest) = make(theme(accent: "teal"))
+#show: centauri.with(accent: "teal")        // whole document
+#cover(accent: "ember", title: [Annex])[]    // one cover
+#use-accent("lime")                          // from here on
+#with-accent("indigo")[One passage.]         // one passage
 ```
 
 == Status and emphasis
@@ -318,10 +364,12 @@ The `lint` parameter lists strings that must not appear. This document forbids t
 
 #sig-block([For the supplier], [For Example Client])
 
+#cover(accent: "ember", title: [Ember cover], subtitle: [`cover(accent: "ember")` sets one page in another accent.])[]
+#cover(accent: "teal", tone: "dark", title: [Teal, dark], subtitle: [Tone and accent combine freely.])[]
+
 #cover(
   tone: "dark",
-  eyebrow: ("End", "Centauri 0.1.0"),
-  title: [Thank #serif-em[you]],
+  title: [Thank you],
   meta: (
     ([Source], [Centauri, derived from the #link("https://proxima.parapalli.dev","proxima.parapalli.dev") design system]),
     ([Contact], [#link("mailto:hey@parapalli.dev")[hey\@parapalli.dev]]),

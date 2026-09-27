@@ -1,0 +1,115 @@
+# Vendored by scripts/sync-tokens.py from ../design-system-master/tokens.toml.
+# Do not edit. Change tokens.toml in the proxima repository and sync again.
+
+# Proxima–Centauri shared tokens.
+#
+# Canonical copy: https://github.com/DevParapalli/proxima/blob/main/tokens.toml
+# Proxima regenerates its CSS token blocks from this file with scripts/tokens.py.
+# Centauri vendors a copy with scripts/sync-tokens.py; do not edit that copy.
+#
+# Only values that are identical in both systems live here. Typefaces and
+# weights, body size, the number of heading steps per factor of phi, radii,
+# spacing, motion, glass and page furniture belong to each system: Proxima is
+# set for screens, Centauri for print.
+
+version = "0.2.0"
+
+[scale]
+# size(hN) = body * phi ^ ((6 - N) / k), h6 == body
+phi = 1.6180339887
+
+# Neutrals. `void` is the page ground, `panel` a raised surface, `panel_2`
+# the top surface. Centauri prints on light `panel_2` and uses light `void`
+# as its cover ground.
+[neutral.dark]
+void = "#0A0B12"
+panel = "#12141F"
+panel_2 = "#181B2A"
+ink_hi = "#EFF0F8"
+ink_mid = "#A9ADC7"
+ink_low = "#666B8A"
+
+[neutral.light]
+void = "#EDEEF6"
+panel = "#F7F8FC"
+panel_2 = "#FFFFFF"
+ink_hi = "#1B1D2E"
+ink_mid = "#4E5270"
+ink_low = "#9094B0"
+
+# State colours. `text` is the readable colour, `base` the hue used for
+# fills, `fill` and `line` the alpha of the fill (from base) and the border
+# (from text).
+[state.dark]
+mint  = { text = "#5EDBA6", base = "#3EC78A", fill = 0.13, line = 0.28 }
+amber = { text = "#F5C951", base = "#F5C951", fill = 0.12, line = 0.26 }
+rose  = { text = "#F8929F", base = "#F87185", fill = 0.13, line = 0.30 }
+sky   = { text = "#6EC6F5", base = "#6EC6F5", fill = 0.12, line = 0.26 }
+
+[state.light]
+mint  = { text = "#0F8A5C", base = "#3EC78A", fill = 0.16, line = 0.30 }
+amber = { text = "#8F6400", base = "#F5C951", fill = 0.24, line = 0.30 }
+rose  = { text = "#C43552", base = "#F87185", fill = 0.15, line = 0.30 }
+sky   = { text = "#1272AE", base = "#6EC6F5", fill = 0.20, line = 0.30 }
+
+[chart]
+neutral = { dark = "#3A3F58", light = "#C9CDE0" }
+
+# Accents. `accent` owns emphasis, `deep` is the stronger step, `ink` is text
+# set on an accent fill, `glow` is the halo colour and its alpha (screen only),
+# `charts` the five series with series 1 following the accent.
+[accent.indigo.dark]
+accent = "#8D8DF5"
+deep = "#5757D9"
+ink = "#0B0B1C"
+glow = { color = "#7C7CF2", alpha = 0.35 }
+charts = ["#6A6AE8", "#2FA97C", "#B8831F", "#D95C6E", "#3E9CD6"]
+
+[accent.indigo.light]
+accent = "#5757D9"
+deep = "#4343C4"
+ink = "#FFFFFF"
+glow = { color = "#5757D9", alpha = 0.25 }
+charts = ["#5050D6", "#1F8A63", "#8A6200", "#D23B72", "#2380BC"]
+
+[accent.teal.dark]
+accent = "#5FD3C8"
+deep = "#2B9E95"
+ink = "#04211E"
+glow = { color = "#50C8BE", alpha = 0.30 }
+charts = ["#0FA0AF", "#6A6AE8", "#B8831F", "#D95C6E", "#3E9CD6"]
+
+[accent.teal.light]
+accent = "#12837C"
+deep = "#0C6A64"
+ink = "#FFFFFF"
+glow = { color = "#12837C", alpha = 0.22 }
+charts = ["#0793A2", "#5050D6", "#8A6200", "#D23B72", "#2380BC"]
+
+[accent.ember.dark]
+accent = "#F2A566"
+deep = "#CE7627"
+ink = "#2A1404"
+glow = { color = "#F2A566", alpha = 0.30 }
+charts = ["#C0641F", "#2FA97C", "#6A6AE8", "#D95C6E", "#3E9CD6"]
+
+[accent.ember.light]
+accent = "#B05808"
+deep = "#8F4508"
+ink = "#FFFFFF"
+glow = { color = "#B05808", alpha = 0.22 }
+charts = ["#A44F0E", "#1F8A63", "#5050D6", "#D23B72", "#2380BC"]
+
+[accent.lime.dark]
+accent = "#CFE763"
+deep = "#9DBB2E"
+ink = "#1D2404"
+glow = { color = "#CFE763", alpha = 0.25 }
+charts = ["#8C9F2B", "#6A6AE8", "#B8831F", "#D95C6E", "#3E9CD6"]
+
+[accent.lime.light]
+accent = "#66790A"
+deep = "#525F00"
+ink = "#FFFFFF"
+glow = { color = "#66790A", alpha = 0.20 }
+charts = ["#66790A", "#5050D6", "#8A6200", "#D23B72", "#2380BC"]
