@@ -311,12 +311,20 @@
       v(1fr)
       if preview > 0 and items.len() > 0 {
         let shown = items.slice(0, calc.min(preview, items.len()))
-        block(below: 0.2cm, grid(columns: (1fr,) * shown.len(), column-gutter: 0.5cm, rows: 3.9cm,
-          ..shown.enumerate().map(((i, it)) => glass(ink, height: 100%, {
-            text(size: S().h4, weight: W.display, fill: ink, number-width: "tabular", if i < 9 { "0" + str(i + 1) } else { str(i + 1) })
-            v(0.35em)
-            text(size: S().small, fill: soft, it.title)
-          }))))
+        let card(i, it) = {
+          text(size: S().h5, weight: W.display, fill: ink, number-width: "tabular", if i < 9 { "0" + str(i + 1) } else { str(i + 1) })
+          v(0.3em)
+          text(size: S().small, fill: soft, par(leading: 0.5em, it.title))
+        }
+        // Cards share the height of the tallest, so the row reads as one set.
+        layout(sz => {
+          let gap = 0.5cm
+          let w = (sz.width - gap * (shown.len() - 1)) / shown.len()
+          let inner = w - 32pt
+          let tallest = calc.max(..shown.enumerate().map(((i, it)) => measure(block(width: inner, card(i, it))).height))
+          block(below: 0.1cm, grid(columns: (1fr,) * shown.len(), column-gutter: gap,
+            ..shown.enumerate().map(((i, it)) => glass(ink, height: tallest + 30pt, card(i, it)))))
+        })
       }
     })
   }
