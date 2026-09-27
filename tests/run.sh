@@ -15,6 +15,8 @@ pass tests/tone.typ
 reject tests/final-todo.typ "unresolved todo"
 reject tests/final-lint.typ "lint match"
 reject tests/contrast.typ "below 4.5:1"
+pass tests/h1-compact.typ
+reject tests/h1-banner.typ "kind brief allows 1"
 
 compile tests/captions.typ "$out/c.pdf" 2>/dev/null
 for want in "FIGURE 1" "TABLE 1"; do

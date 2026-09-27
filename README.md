@@ -63,7 +63,7 @@ Before the package is published, or to work against a checkout, import the entry
 
 - `paper` is `"a4"` or `"us-letter"`. `orientation` is `"portrait"` or `"landscape"`. A4 and A3 share one ratio, so a landscape page prints on A3 by scaling.
 - When `max-pages` is set, compilation stops if the document is longer.
-- A level 1 heading that opens a page is set as a banner: a tinted band across the full page width, the number and title centred, an accent rule beneath. A level 1 heading that falls mid-page, or any level 1 heading in a multi-column layout, sits under a rule with its number beside it. `h1-style: "banner"` or `"rule"` forces one treatment.
+- A level 1 heading that opens a page is set as a banner: a tinted band across the full page width, the number and title centred, an accent rule beneath. A level 1 heading that falls mid-page, or any level 1 heading in a multi-column layout, sits under a rule with its number beside it. `h1-style: "compact"` sets the heading at the same size with its number beside it and no band or rule, to leave room for content; `brief` uses it by default. `h1-style: "banner"`, `"rule"` or `"compact"` forces one treatment.
 - Levels 2 to 6 are plain headings. Their numbers are set at the heading's own size and weight in low ink. `heading-numbers: "hang"` outdents numbers into the left margin so titles align with body text; `"none"` omits them.
 - `letter(sender, contact, recipient, date, subject, closing, signature, paper)` is a separate template for correspondence.
 

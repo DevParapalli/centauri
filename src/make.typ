@@ -18,13 +18,13 @@
 
 /// Defaults per document kind. Explicit arguments to `centauri` override them.
 #let kinds = (
-  report: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false),
-  rfp: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false),
-  spec: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false),
-  brief: (h1-pagebreak: false, orientation: "portrait", columns: 1, max-pages: 1, sidenotes: false),
-  handout: (h1-pagebreak: false, orientation: "portrait", columns: 2, max-pages: none, sidenotes: false),
-  handbook: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: true),
-  wallchart: (h1-pagebreak: false, orientation: "landscape", columns: 1, max-pages: none, sidenotes: false),
+  report: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
+  rfp: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
+  spec: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
+  brief: (h1-pagebreak: false, orientation: "portrait", columns: 1, max-pages: 1, sidenotes: false, h1-style: "compact"),
+  handout: (h1-pagebreak: false, orientation: "portrait", columns: 2, max-pages: none, sidenotes: false, h1-style: auto),
+  handbook: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: true, h1-style: auto),
+  wallchart: (h1-pagebreak: false, orientation: "landscape", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
 )
 #let _furniture = state("centauri-furniture", (
   header: (left: none, center: none, right: none),
@@ -210,13 +210,14 @@
     let max-pages = pick(max-pages, "max-pages")
     let sidenotes = pick(sidenotes, "sidenotes")
     let h1-pagebreak = pick(h1-pagebreak, "h1-pagebreak")
+    let h1-style = pick(h1-style, "h1-style")
     assert(orientation in ("portrait", "landscape"), message: "centauri: orientation must be portrait or landscape")
     // Sidenotes need a wide outer margin; other kinds keep 2cm and fall back to footnotes.
     let margins = if sidenotes { (left: 2cm, right: 5.4cm) } else { (left: 2cm, right: 2cm) }
     assert(stage in ("draft", "review", "final"), message: "centauri: stage must be draft, review or final")
     let accent = if accent == auto { t.accent } else { accent }
     assert(accent in t.palettes, message: "centauri: accent must be one of " + t.palettes.keys().join(", "))
-    assert(h1-style in (auto, "banner", "rule"), message: "centauri: h1-style must be auto, banner or rule")
+    assert(h1-style in (auto, "banner", "rule", "compact"), message: "centauri: h1-style must be auto, banner, rule or compact")
     assert(heading-numbers in ("inline", "hang", "none"), message: "centauri: heading-numbers must be inline, hang or none")
     let p = palette(accent, "light")
     let sz = t.scales.document
@@ -297,6 +298,10 @@
               title
             })))
           })
+      } else if style == "compact" {
+        // Same size as the other styles, without the band or rule, for pages that need the space.
+        block(above: 1.2em, below: 0.6em, width: 100%, sticky: true,
+          with-number(it, S().h1, t.weight.body, q.link, title))
       } else {
         block(above: 1.6em, below: 1.2em, width: 100%, {
           line(length: 100%, stroke: 0.75pt + q.ink-hi)
