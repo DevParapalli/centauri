@@ -52,18 +52,20 @@ Before the package is published, or to work against a checkout, import the entry
 
 `kind` selects defaults. Any default MAY be overridden with the argument of the same name.
 
-| Kind | Orientation | Columns | Level 1 starts a page | Page limit | Sidenotes |
-|---|---|---|---|---|---|
-| `report`, `rfp`, `spec` | portrait | 1 | yes | none | footnotes |
-| `brief` | portrait | 1 | no | 1 | footnotes |
-| `handout` | portrait | 2 | no | none | footnotes |
-| `handbook` | portrait | 1 | yes | none | outer margin |
-| `wallchart` | landscape | 1 | no | none | footnotes |
-| `deck` | 16:9 or 4:3 | 1 | not applicable | none | not applicable |
+| Kind | Orientation | Columns | Level 1 starts a page | Level 1 style | Page limit | Sidenotes |
+|---|---|---|---|---|---|---|
+| `report`, `rfp`, `spec` | portrait | 1 | yes | auto | none | footnotes |
+| `brief` | portrait | 1 | no | compact | 1 | footnotes |
+| `handout` | portrait | 2 | no | auto | none | footnotes |
+| `handbook` | portrait | 1 | yes | auto | none | outer margin |
+| `wallchart` | landscape | 1 | no | auto | none | footnotes |
+| `deck` | 16:9 or 4:3 | 1 | not applicable | not applicable | none | not applicable |
 
 - `paper` is `"a4"` or `"us-letter"`. `orientation` is `"portrait"` or `"landscape"`. A4 and A3 share one ratio, so a landscape page prints on A3 by scaling.
 - When `max-pages` is set, compilation stops if the document is longer.
-- A level 1 heading that opens a page is set as a banner: a tinted band across the full page width, the number and title centred, an accent rule beneath. A level 1 heading that falls mid-page, or any level 1 heading in a multi-column layout, sits under a rule with its number beside it. `h1-style: "compact"` sets the heading at the same size with its number beside it and no band or rule, to leave room for content; `brief` uses it by default. `h1-style: "banner"`, `"rule"` or `"compact"` forces one treatment.
+- With `h1-style: auto`, a level 1 heading that opens a page is set as a banner: a tinted band across the full page width, the number and title centred, an accent rule beneath. A level 1 heading that falls mid-page, or any level 1 heading in a multi-column layout, sits under a rule with its number beside it.
+- `h1-style: "compact"` sets a level 1 heading at the same size with its number beside it, without the band or the rule, so a page keeps its space for content. `brief` uses it by default.
+- `h1-style: "banner"`, `"rule"` or `"compact"` forces one treatment on every level 1 heading.
 - Levels 2 to 6 are plain headings. Their numbers are set at the heading's own size and weight in low ink. `heading-numbers: "hang"` outdents numbers into the left margin so titles align with body text; `"none"` omits them.
 - `letter(sender, contact, recipient, date, subject, closing, signature, paper)` is a separate template for correspondence.
 
@@ -86,14 +88,14 @@ Every Proxima accent (`indigo`, `teal`, `ember`, `lime`) is available in both to
 
 - for the whole document, with `centauri(accent: "teal")`;
 - for one cover, slide or part, with `accent: "ember"` on that call;
-- from a point onward, with `use-accent("lime")`;
+- from a point onward, with `use-accent("lime")` (documents only; in a deck, set `accent:` on each slide instead);
 - for one passage, with `with-accent("indigo")[...]`.
 
 The link colour for each accent is the first of accent, accent-deep and ink that reaches 4.5:1 on both the page and the cover ground. Compilation stops if a theme override breaks that.
 
 ## Page furniture
 
-Inner pages have left, centre and right slots above the header rule and below the footer rule. Each slot takes content, `none`, `auto`, or a function of the page tone. The header centre is empty by default; `auto` there opts in to the running head (the level 1 heading in force). `auto` in the footer centre is the page number followed by the sensitivity label. Set slots with `centauri(header: (center: [...]))`; change them from any point with `furniture(header: (center: [...]))`.
+Inner pages have left, centre and right slots above the header rule and below the footer rule. Each slot takes content, `none`, `auto`, or a function of the page tone. The header centre is empty by default; `auto` there opts in to the running head (the level 1 heading in force). `auto` in the footer centre is the page number followed by the sensitivity label. Set slots with `centauri(header: (center: [...]))`; change them from any point with `furniture(header: (center: [...]))`. Slots set on `centauri` apply from page 1, whatever the page opens with.
 
 ## Covers
 
@@ -139,10 +141,13 @@ Weight falls as size rises: display and h1 are set at 300–320, small headings 
 | `quote-slide(attribution)[text]` | Quotation in the serif beside an emphasis line. |
 | `explain(title, ..rows)` | Terms and explanations in rows divided by hairlines. Use sparingly. |
 | `compare(title, left, right, pick)` | Two options on a shared baseline. |
-| `table-slide`, `code-slide`, `steps-slide`, `exercise`, `appendix`, `close` | As named; `exercise` takes a second accent. |
+| `table-slide(title, columns, header, align, source)[..cells]` | Numbers right-aligned after the first column by default; `align: left` for tables of text, or any `table` alignment. |
+| `bars-chart(..bars)` | Horizontal bars as `(label, value, pill)`. A bar is never narrower than 2.4cm, so its value pill fits; a very small value reads slightly longer than its true length, and the pill carries the exact figure. |
+| `code-slide`, `steps-slide`, `exercise`, `appendix`, `close` | As named; `exercise` takes a second accent. |
+| `tile[body]` | Plain tonal card for use inside a slide body. |
 | `metric`, `cols`, `hl`, `notes` | Helpers. |
 
-Two line types have distinct jobs: the emphasis line (thick, round-ended, accent, from the first line's cap height to the last line's baseline) marks a statement or quotation; the hairline divides rows and items. Every slide accepts `projection`, `accent` and `light` overrides.
+Two line types have distinct jobs: the emphasis line (thick, round-ended, accent, from the first line's cap height to the last line's baseline) marks a statement or quotation; the hairline divides rows and items. Every slide accepts `projection`, `accent` and `light` overrides. A slide without `accent:` uses the deck's accent, so a per-slide override never carries to the next slide.
 
 ### Output modes
 
@@ -166,10 +171,15 @@ Code blocks are highlighted with a theme generated from the palette in force, so
 - The header centre MAY carry the running head with `auto`; it is empty by default.
 - Eyebrows are removed everywhere. Level 1 headings open pages as banners; heading numbers match their heading's size.
 - New kinds, new components and `letter`.
+- `h1-style: "compact"`, the default for `brief`.
+- Slides export `tile`; `table-slide` takes `align:`; `bars-chart` bars have a 2.4cm minimum width.
+- Section-slide preview cards share the height of the tallest title, so long titles are not cut off.
+- A deck whose accent is not the theme default converges at any length. `use-accent` no longer carries across slides.
+- Header, footer and sensitivity set on `centauri` apply on page 1 when the page opens with something other than a heading.
 
 ## Tests
 
-`tests/run.sh` compiles the showcase and test documents from the repository root. It requires `typst` and `pdftotext`. The tests are not yet updated for 0.2.0.
+`tests/run.sh` compiles the showcase and test documents from the repository root. It requires `typst` and `pdftotext`. `tests/contrast.typ` is not yet updated for 0.2.0 and fails with `unknown variable: make`.
 
 ## Licence
 
