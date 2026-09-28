@@ -31,8 +31,9 @@
   let mode = sys.inputs.at("mode", default: "slides")
   assert(mode in ("slides", "handout", "titles"), message: "centauri: mode must be slides, handout or titles")
   let margin = (x: 1.9cm, top: 2.1cm, bottom: 2.0cm)
-  // Text measure shared by both aspects, so 4:3 and 16:9 set the same line lengths.
-  let column = 24cm
+  // Text measure: 24cm on 16:9, the full width between margins on 4:3 (21.6cm).
+  // Call inside context; it reads the deck's aspect.
+  let column() = calc.min(24cm, aspects.at(_deck.get().aspect).at(0) - 2 * margin.x)
 
   let W = t.deck-weight
 
@@ -225,7 +226,7 @@
   // and the emphasis line, because in Proxima an accent-coloured element reads as active.
   let hl(body) = context text(fill: pal().ink-hi, weight: t.weight.strong, body)
 
-  let slide-title(q, body, size: auto) = block(width: column, below: 0.9em,
+  let slide-title(q, body, size: auto) = block(width: column(), below: 0.9em,
     text(size: if size == auto { S().h4 } else { size }, weight: W.h4, tracking: -0.012em, fill: q.ink-hi, par(leading: 0.42em, body)))
 
   // Emphasis line: a thick, round-ended accent line running from the cap height of the
@@ -279,7 +280,7 @@
       place(top + left, dx: -1.35cm, dy: 0cm, rotate(-90deg, origin: top + left, reflow: true,
         text(size: S().label + 1pt, tracking: 0.08em, fill: q.ink-low, side)))
     }
-    place(left + horizon, block(width: column, {
+    place(left + horizon, block(width: column(), {
       text(size: S().h1, weight: W.display, tracking: -0.022em, fill: q.ink-hi, par(leading: 0.32em, title))
       if subtitle != none { v(0.8em); block(width: 80%, text(size: S().h5, fill: q.ink-mid, subtitle)) }
       if facts.len() > 0 { v(1.2em); facts.map(f => chip(q.ink-mid, q.hairline, f)).join(h(8pt)) }
@@ -301,7 +302,7 @@
       let me = sections.position(s => s.n == here-n)
       let items = all.filter(s => s.section != none and s.section.n == here-n and s.kind not in ("section", "cover", "outline") and s.title != none)
       v(1fr)
-      block(width: column, {
+      block(width: column(), {
         text(size: S().small, fill: soft)[Section #(me + 1) of #sections.len()]
         v(0.2em)
         text(size: S().h1, weight: W.display, tracking: -0.022em, fill: ink, par(leading: 0.32em, title))
@@ -360,14 +361,14 @@
     let q = pal()
     align(left + horizon, block(width: 90%, {
       emphasis(q, S().h1, text(weight: W.h1, tracking: -0.022em, fill: q.ink-hi, par(leading: 0.42em, body)))
-      if sub != none { v(1em); block(width: column, text(size: S().h5, fill: q.ink-mid, sub)) }
+      if sub != none { v(1em); block(width: column(), text(size: S().h5, fill: q.ink-mid, sub)) }
     }))
   })
 
   /// Quotation in the serif beside an emphasis line.
   let quote-slide(attribution: none, light: auto, projection: auto, accent: auto, body) = on-page(projection, accent, kind: "quote", light: light, context {
     let q = pal()
-    align(left + horizon, block(width: column, {
+    align(left + horizon, block(width: column(), {
       emphasis(q, S().h3, text(font: t.fonts.serif, style: "italic", fill: q.ink-hi, par(leading: 0.5em, body)))
       if attribution != none { v(0.9em); text(size: S().small, weight: t.weight.strong, fill: q.ink-mid, attribution) }
     }))
