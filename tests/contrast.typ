@@ -1,3 +1,4 @@
+// A theme override whose link colour falls below 4.5:1 on the page stops the build.
 #import "/lib.typ": *
 #for a in accents.keys() {
   let th = theme(accent: a)
@@ -9,7 +10,8 @@
     }
   }
 }
-#let bad = theme() + (light: theme().light + (link: rgb("#9094B0")))
-#let (centauri, ..rest) = make(bad)
+#let t = theme()
+#let bad = t + (palettes: t.palettes + (indigo: t.palettes.indigo + (light: t.palettes.indigo.light + (link: rgb("#9094B0")))))
+#let (centauri, ..rest) = make-kit(bad)
 #show: centauri.with()
 Should not compile.
