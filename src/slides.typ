@@ -13,7 +13,7 @@
 #import "make.typ": make, tone, _size, _accent
 #import "tokens.typ": ink-on
 
-#let _deck = state("centauri-deck", (projection: "light", label: none, date: none, presenter: none, aspect: "16:9", logos: (left: none, right: none), light: auto, bloom: true))
+#let _deck = state("centauri-deck", (projection: "light", accent: "indigo", label: none, date: none, presenter: none, aspect: "16:9", logos: (left: none, right: none), light: auto, bloom: true))
 #let _slide-no = counter("centauri-slide")
 #let _section = state("centauri-deck-section", none)
 #let _slide-notes = state("centauri-slide-notes", none)
@@ -31,8 +31,9 @@
   let mode = sys.inputs.at("mode", default: "slides")
   assert(mode in ("slides", "handout", "titles"), message: "centauri: mode must be slides, handout or titles")
   let margin = (x: 1.9cm, top: 2.1cm, bottom: 2.0cm)
-  // Text measure shared by both aspects, so 4:3 and 16:9 set the same line lengths.
-  let column = 24cm
+  // Text measure: 24cm on 16:9, the full width between margins on 4:3 (21.6cm).
+  // Call inside context; it reads the deck's aspect.
+  let column() = calc.min(24cm, aspects.at(_deck.get().aspect).at(0) - 2 * margin.x)
 
   let W = t.deck-weight
 
@@ -125,7 +126,7 @@
     _size.update("deck")
     _tone.update(projection)
     _accent.update(accent)
-    _deck.update((projection: projection, label: label, date: date, presenter: presenter, aspect: aspect, logos: logos, light: light, bloom: bloom))
+    _deck.update((projection: projection, accent: accent, label: label, date: date, presenter: presenter, aspect: aspect, logos: logos, light: light, bloom: bloom))
     body
     // No auto-fit: a slide that runs onto a second page fails the build.
     if mode == "slides" {
@@ -160,9 +161,8 @@
     context {
       let n = _slide-no.get().first()
       let d = _deck.get()
-      let before = (base.accent-now)()
       let pj = if projection == auto { d.projection } else { projection }
-      let a = if accent == auto { before } else { accent }
+      let a = if accent == auto { d.accent } else { accent }
       let q = palette(a, pj)
       let g = ground(q, kind)
       let lt = if light != auto { light } else if d.light != auto { d.light } else { (x: rand(n, 1), y: rand(n, 2)) }
@@ -178,7 +178,7 @@
         set text(fill: q.ink-mid)
         body
         _tone.update(d.projection)
-        _accent.update(before)
+        _accent.update(d.accent)
       }
       let src = if source != none { place(bottom + left, dy: 0.35cm, text(size: S().label + 1pt, fill: q.ink-low)[Source: #source]) }
       if mode == "titles" {
@@ -226,7 +226,7 @@
   // and the emphasis line, because in Proxima an accent-coloured element reads as active.
   let hl(body) = context text(fill: pal().ink-hi, weight: t.weight.strong, body)
 
-  let slide-title(q, body, size: auto) = block(width: column, below: 0.9em,
+  let slide-title(q, body, size: auto) = block(width: column(), below: 0.9em,
     text(size: if size == auto { S().h4 } else { size }, weight: W.h4, tracking: -0.012em, fill: q.ink-hi, par(leading: 0.42em, body)))
 
   // Emphasis line: a thick, round-ended accent line running from the cap height of the
@@ -280,7 +280,7 @@
       place(top + left, dx: -1.35cm, dy: 0cm, rotate(-90deg, origin: top + left, reflow: true,
         text(size: S().label + 1pt, tracking: 0.08em, fill: q.ink-low, side)))
     }
-    place(left + horizon, block(width: column, {
+    place(left + horizon, block(width: column(), {
       text(size: S().h1, weight: W.display, tracking: -0.022em, fill: q.ink-hi, par(leading: 0.32em, title))
       if subtitle != none { v(0.8em); block(width: 80%, text(size: S().h5, fill: q.ink-mid, subtitle)) }
       if facts.len() > 0 { v(1.2em); facts.map(f => chip(q.ink-mid, q.hairline, f)).join(h(8pt)) }
@@ -302,7 +302,7 @@
       let me = sections.position(s => s.n == here-n)
       let items = all.filter(s => s.section != none and s.section.n == here-n and s.kind not in ("section", "cover", "outline") and s.title != none)
       v(1fr)
-      block(width: column, {
+      block(width: column(), {
         text(size: S().small, fill: soft)[Section #(me + 1) of #sections.len()]
         v(0.2em)
         text(size: S().h1, weight: W.display, tracking: -0.022em, fill: ink, par(leading: 0.32em, title))
@@ -361,14 +361,14 @@
     let q = pal()
     align(left + horizon, block(width: 90%, {
       emphasis(q, S().h1, text(weight: W.h1, tracking: -0.022em, fill: q.ink-hi, par(leading: 0.42em, body)))
-      if sub != none { v(1em); block(width: column, text(size: S().h5, fill: q.ink-mid, sub)) }
+      if sub != none { v(1em); block(width: column(), text(size: S().h5, fill: q.ink-mid, sub)) }
     }))
   })
 
   /// Quotation in the serif beside an emphasis line.
   let quote-slide(attribution: none, light: auto, projection: auto, accent: auto, body) = on-page(projection, accent, kind: "quote", light: light, context {
     let q = pal()
-    align(left + horizon, block(width: column, {
+    align(left + horizon, block(width: column(), {
       emphasis(q, S().h3, text(font: t.fonts.serif, style: "italic", fill: q.ink-hi, par(leading: 0.5em, body)))
       if attribution != none { v(0.9em); text(size: S().small, weight: t.weight.strong, fill: q.ink-mid, attribution) }
     }))
@@ -431,7 +431,7 @@
     grid(columns: (auto, 1fr), column-gutter: 0.5cm, row-gutter: 0.3cm, align: (right + horizon, left + horizon),
       ..items.enumerate().map(((i, it)) => (
         text(size: S().small, weight: t.weight.strong, fill: q.ink-mid, it.at(0)),
-        layout(sz => box(width: sz.width * it.at(1) / top, height: 1.15cm, radius: 8pt, fill: tones.at(calc.rem(i, 2)), inset: (right: 6pt),
+        layout(sz => box(width: calc.max(sz.width * it.at(1) / top, 2.4cm), height: 1.15cm, radius: 8pt, fill: tones.at(calc.rem(i, 2)), inset: (right: 6pt),
           align(right + horizon, box(inset: (x: 10pt, y: 3pt), radius: t.radius.full, fill: tile-fill(q),
             text(size: S().small, weight: t.weight.strong, fill: q.ink-hi, number-width: "tabular", it.at(2, default: str(it.at(1)))))))),
       )).flatten())
@@ -484,11 +484,12 @@
   })
 
   /// Grid of numbers: tabular figures, numerals right-aligned, no vertical rules.
-  let table-slide(title: none, columns: 2, header: none, source: none, projection: auto, accent: auto, ..cells) = on-page(projection, accent, kind: "table", title: title, source: source, context {
+  let table-slide(title: none, columns: 2, header: none, align: auto, source: none, projection: auto, accent: auto, ..cells) = on-page(projection, accent, kind: "table", title: title, source: source, context {
     let q = pal()
     if title != none { slide-title(q, title) }
     let n = if type(columns) == int { columns } else { columns.len() }
-    (base.data-table)(columns: columns, header: header, align: (x, _) => if x == 0 { left } else { right }, ..cells)
+    // Numbers right-aligned by default; pass align: left for tables of text.
+    (base.data-table)(columns: columns, header: header, align: if align == auto { (x, _) => if x == 0 { left } else { right } } else { align }, ..cells)
   })
 
   /// Code listing of at most 15 lines. `highlight` takes line numbers set on an accent band.
@@ -521,7 +522,7 @@
   /// exercises stand apart from content slides.
   let exercise(title: none, task: none, minutes: none, output: none, projection: auto, accent: auto) = context {
     let a = if accent != auto { accent } else {
-      let now = (base.accent-now)()
+      let now = _deck.get().accent
       if now == "ember" { "teal" } else { "ember" }
     }
     on-page(projection, a, kind: "exercise", title: title, context {
@@ -609,6 +610,7 @@
     quote-slide: quote-slide,
     explain: explain,
     stats: stats,
+    tile: (body) => context tile(pal(), body),
     columns-chart: columns-chart,
     bars-chart: bars-chart,
     split: split,

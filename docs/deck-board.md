@@ -1,6 +1,8 @@
 # Centauri deck design board (consolidated)
 
-Scope: slide support in Centauri — 4:3 and 16:9, light-first, Source Sans 3 / Source Serif 4 / Source Code Pro, four Proxima accents. Existing Centauri decisions are fixed: one heading font, serif reserved for quotations and drop cap, no eyebrow labels, nothing in the header centre.
+Status: design rationale for the deck support shipped in Centauri 0.2.0. This board explains why decks look and behave as they do. The API (functions, arguments, build rules) is in [`reference.md`](reference.md); where the two differ, `reference.md` is authoritative. Sections below that record what was built are marked **As built**.
+
+Scope: slide support in Centauri — 4:3 and 16:9, light-first, four Proxima accents. Typefaces are Centauri's own: Atkinson Hyperlegible Next for text, Atkinson Hyperlegible Mono for code and labels, Newsreader for quotations (the board was drafted against Source Sans 3 / Source Serif 4 / Source Code Pro; the rules carry over unchanged). Existing Centauri decisions are fixed: one heading font, serif reserved for quotations and drop cap, no eyebrow labels, nothing in the header centre of documents unless the author opts in.
 
 This merges two source sets of very different rigor. Where they conflict, that's called out rather than smoothed over.
 
@@ -33,22 +35,26 @@ Also adopted from Butterick: pick a base size that fits 12–15 lines and hold i
 
 ## Slide archetypes for Centauri
 
-| Archetype | Content | Notes |
-|---|---|---|
-| `cover` | Title, subtitle, author, date | Per-cover accent override. No logo wall. |
-| `section` | Section number and title | Optional thin progress indicator (Metropolis-style), accent-coloured. |
-| `outline` | Generated slide titles by section | Same source as the title-only export. |
-| `claim` (default) | Sentence title plus one exhibit | Assertion–evidence. Source line in footer. |
-| `statement` | One short phrase at display size | Takahashi method — large text, few words, many slides. Pacing tool, not evidence. |
-| `quote` | Quotation plus attribution | Source Serif 4 — the one sanctioned serif use on slides. |
-| `compare` | Two columns, before/after or A/B | Shared baseline for both columns. |
-| `exhibit` | Chart or diagram, no chart title | Slide title carries the interpretation; the chart shows only data. |
-| `table` | Grid of numbers | Tabular lining figures, right-aligned numerals, no vertical rules. |
-| `code` | Listing, ≤15 lines | Source Code Pro, line highlight in accent, no line numbers unless referenced. |
-| `steps` | Numbered sequence | One step may be emphasised per build. |
-| `exercise` | Task, time box, expected output | Training-specific; distinct accent from content slides. |
-| `appendix` | Dense evidence | Smaller body size permitted — main deck is the argument, appendix is the evidence library. |
-| `close` | Next actions, contact | Not "Questions?" or "Thank you." |
+**As built.** Each archetype maps to one function; see `reference.md` for arguments.
+
+| Archetype | Function | Content | Notes |
+|---|---|---|---|
+| `cover` | `title-slide` | Title, subtitle, fact chips, optional large numeral | Per-slide accent override. No logo wall; logos, when given, sit in the frame corners. |
+| `section` | `section-slide` | Section title and subtitle | Accent ground. `Section n of m` and up to four preview cards listing the section's slides stand in for a progress bar. |
+| `outline` | `outline-slide` | One tile per section with its slide count | Same source as the title-only export. |
+| `claim` (default) | `claim`, alias `slide` | Sentence title plus one exhibit | Assertion–evidence. Source line at the bottom left. |
+| `statement` | `statement` | One short phrase at h1 size | Takahashi method — large text, few words, many slides. Pacing tool, not evidence. |
+| `quote` | `quote-slide` | Quotation plus attribution | Newsreader — the one sanctioned serif use on slides. |
+| `compare` | `compare` | Two columns, before/after or A/B | Shared baseline for both columns; `pick` marks the favoured option. |
+| `exhibit` | `exhibit` | Chart or diagram, no chart title | Slide title carries the interpretation; the chart shows only data. |
+| `table` | `table-slide` | Grid of numbers or text | Tabular lining figures, right-aligned numerals by default, `align: left` for text, no vertical rules. |
+| `code` | `code-slide` | Listing, ≤15 lines | Mono face, highlighted lines on a band, no line numbers. |
+| `steps` | `steps-slide` | Numbered sequence | One step may be emphasised with `current`. |
+| `exercise` | `exercise` | Task, time box, expected output | Training-specific; takes a second accent automatically. |
+| `appendix` | `appendix` | Dense evidence | Smaller body size permitted — main deck is the argument, appendix is the evidence library. |
+| `close` | `close` | Next actions, contact | Not "Questions?" or "Thank you." |
+
+Added during the build, outside the original board: `explain` (terms defined in rows), `split` (accent panel plus tiles), `display-slide` (one word at column width), and the helpers `stats`, `metric`, `tile`, `columns-chart`, `bars-chart`, `cols`, `hl`, `notes`.
 
 ---
 
@@ -69,9 +75,13 @@ Also adopted from Butterick: pick a base size that fits 12–15 lines and hold i
 
 ## Chrome
 
+As proposed:
+
 - Frame number bottom-right. Source line bottom-left, small, on every data slide.
 - Nothing in the header centre (existing rule). No logo on every slide.
 - Optional progress indicator, section slides only.
+
+**As built.** An editorial frame of two hairlines. Above the top line: series label, current section title (centre), date. Below the foot line: slide count (`03 / 21`) on the left, presenter on the right. The section title in the top centre departs from the "nothing in the header centre" rule, which is kept for documents; on slides it replaces the progress indicator. Logos are optional and take the top corners. The source line sits at the bottom left of the content area.
 
 ## Data
 
@@ -81,10 +91,14 @@ Also adopted from Butterick: pick a base size that fits 12–15 lines and hold i
 
 ## Output modes
 
-- `aspect: "16:9" | "4:3"` — shared text column.
+**As built.**
+
+- `aspect: "16:9" | "4:3"` — text column of 24cm on 16:9, the full 21.6cm between margins on 4:3.
 - `projection: "light" | "dark"` — dark pulls Proxima tokens.
-- `handout: true` — A4 pages with slide + speaker notes, in the spirit of Duarte's slidedocs; reuses Centauri's A4 print path.
-- Speaker notes in pdfpc-compatible form — Touying already exports these; read it before building.
+- `--input mode=handout` — A4 pages with each slide and its speaker notes, in the spirit of Duarte's slidedocs.
+- `--input mode=titles` — the title-only export, for the ghost-deck review.
+- `--input notes=true` — speaker notes printed on the slides.
+- Speaker notes in pdfpc-compatible form — not built. Touying exports these and remains the reference if it is taken up.
 
 ## Build process worth encoding
 
@@ -109,7 +123,7 @@ From the 15-system pattern analysis. Several sit in tension with fixed Centauri 
 | Asymmetric two-column grids | 1:3 ratio, static title column + active content column | Conflicts with assertion-evidence's single sentence-title-plus-exhibit layout as the default `claim` archetype. Could work for `compare`. |
 | Geometric primitive diagrams | Architecture shown via basic shapes filled in the accent colour | Compatible with "maximize data-ink" / no stock imagery, no decorative icons. |
 | Oversized typographic metrics | Standalone numbers set very large in a geometric sans | Overlaps with `statement` archetype; font choice (Inter/Roboto) conflicts with Centauri's fixed Source Sans 3. |
-| Edge-anchored accent borders for quotes | Oversized quote text, no quotation marks, thick accent rule on the left edge instead | Direct alternative to the `quote` archetype's current Source Serif 4 treatment — worth testing against it, not adding on top. |
+| Edge-anchored accent borders for quotes | Oversized quote text, no quotation marks, thick accent rule on the left edge instead | Direct alternative to the `quote` archetype's serif treatment. **As built:** combined — `quote-slide` and `statement` set their text beside a thick, round-ended accent line (the emphasis line), and quotations keep the serif. |
 | Progressive disclosure via opacity | Future bullet points at 30% opacity, current/past at 100% | Conflicts with "no auto-fit... slides should be static" framing and with removing bullets as the default body; may be acceptable narrowly for `steps`. |
 | Monospace kicker headings | Small monospace kicker (`// SESSION 04`) above a bold title on cover slides | Directly conflicts with the fixed Centauri decision: "no eyebrow labels." |
 | Terminal-style concept boxes | Rounded box, muted background, accent top border, mimics a CLI frame | No direct conflict, but adds a chrome element the board's "minimal chrome" principle would need to approve explicitly. |
@@ -122,12 +136,19 @@ From the 15-system pattern analysis. Several sit in tension with fixed Centauri 
 
 Metropolis is CC BY-SA 4.0 with share-alike on redistribution — read for ideas only, no code into MIT-licensed Centauri. [CTAN](https://ctan.org/tex-archive/macros/latex/contrib/beamer-contrib/themes/metropolis)
 
-## Open decisions
+## Decisions
 
-- Sentence titles (`claim`) vs label titles as the default for AMS training decks.
-- Whether the dark projection variant ships in 0.3.0 or later.
-- Whether section slides carry a progress indicator.
-- Whether any secondary pattern above (beyond code blocks / geometric diagrams) gets adopted, and in what form.
+Resolved in 0.2.0:
+
+- **Default slide:** sentence titles. `claim` is the default content slide, and `slide` is an alias for it. The build rejects a title that ends with a full stop.
+- **Dark projection:** shipped in 0.2.0 alongside light.
+- **Progress indicator:** not built as a bar. Section slides print `Section n of m` with preview cards, and the frame carries the section title on every content slide.
+- **Secondary patterns:** context-dimmed code (line highlighting) and the edge-anchored accent line (the emphasis line on statements and quotations) are adopted. Kicker headings are rejected (no eyebrow labels). The rest are not adopted.
+
+Open:
+
+- pdfpc-compatible speaker notes export.
+- Whether `steps-slide` gains progressive disclosure across builds.
 
 ## Reference library
 
@@ -153,6 +174,6 @@ Galleries (visual browsing; SEO-heavy, quality varies):
 - bestpitchdeck archive: https://bestpitchdeck.com/figma
 - Swiss grid generator (layout study tool): https://github.com/longplay45/swiss-grid-generator
 
-## Available next
+## API
 
-Turning the archetype table into a Typst API sketch for `centauri` — function signatures and parameters — roughly 1 hour of work.
+The archetype table is implemented. Function signatures, arguments and build rules are in [`reference.md`](reference.md).

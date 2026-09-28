@@ -18,13 +18,13 @@
 
 /// Defaults per document kind. Explicit arguments to `centauri` override them.
 #let kinds = (
-  report: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false),
-  rfp: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false),
-  spec: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false),
-  brief: (h1-pagebreak: false, orientation: "portrait", columns: 1, max-pages: 1, sidenotes: false),
-  handout: (h1-pagebreak: false, orientation: "portrait", columns: 2, max-pages: none, sidenotes: false),
-  handbook: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: true),
-  wallchart: (h1-pagebreak: false, orientation: "landscape", columns: 1, max-pages: none, sidenotes: false),
+  report: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
+  rfp: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
+  spec: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
+  brief: (h1-pagebreak: false, orientation: "portrait", columns: 1, max-pages: 1, sidenotes: false, h1-style: "compact"),
+  handout: (h1-pagebreak: false, orientation: "portrait", columns: 2, max-pages: none, sidenotes: false, h1-style: auto),
+  handbook: (h1-pagebreak: true, orientation: "portrait", columns: 1, max-pages: none, sidenotes: true, h1-style: auto),
+  wallchart: (h1-pagebreak: false, orientation: "landscape", columns: 1, max-pages: none, sidenotes: false, h1-style: auto),
 )
 #let _furniture = state("centauri-furniture", (
   header: (left: none, center: none, right: none),
@@ -108,19 +108,29 @@
   )
 
   // Header and footer both read furniture as it stood at the top of the page.
-  let header-for(q, tone) = context {
+  // Page 1's header is laid out before the document's first furniture update takes
+  // effect, so the document's own settings are passed in as `first` and applied there.
+  let with-first(f, first) = if first == none { f } else {(
+    header: f.header + first.header,
+    footer: f.footer + first.footer,
+    sensitivity: if first.sensitivity == auto { f.sensitivity } else { first.sensitivity },
+  )}
+
+  let header-for(q, tone, first: none) = context {
     [#metadata(none) <centauri-page-top>]
     let f = _furniture.get()
+    if here().page() == 1 { f = with-first(f, first) }
     set text(fill: q.ink-mid, size: S().small)
     row(f, f.header, tone, q, false)
     v(-4pt)
     line(length: 100%, stroke: 0.5pt + q.hairline)
   }
 
-  let footer-for(q, tone) = context {
+  let footer-for(q, tone, first: none) = context {
     let page = here().page()
     let tops = query(<centauri-page-top>).filter(m => m.location().page() == page)
     let f = if tops.len() > 0 { _furniture.at(tops.first().location()) } else { _furniture.get() }
+    if page == 1 { f = with-first(f, first) }
     set text(fill: q.ink-mid, size: S().small)
     line(length: 100%, stroke: 0.5pt + q.hairline)
     v(-4pt)
@@ -200,13 +210,14 @@
     let max-pages = pick(max-pages, "max-pages")
     let sidenotes = pick(sidenotes, "sidenotes")
     let h1-pagebreak = pick(h1-pagebreak, "h1-pagebreak")
+    let h1-style = pick(h1-style, "h1-style")
     assert(orientation in ("portrait", "landscape"), message: "centauri: orientation must be portrait or landscape")
     // Sidenotes need a wide outer margin; other kinds keep 2cm and fall back to footnotes.
     let margins = if sidenotes { (left: 2cm, right: 5.4cm) } else { (left: 2cm, right: 2cm) }
     assert(stage in ("draft", "review", "final"), message: "centauri: stage must be draft, review or final")
     let accent = if accent == auto { t.accent } else { accent }
     assert(accent in t.palettes, message: "centauri: accent must be one of " + t.palettes.keys().join(", "))
-    assert(h1-style in (auto, "banner", "rule"), message: "centauri: h1-style must be auto, banner or rule")
+    assert(h1-style in (auto, "banner", "rule", "compact"), message: "centauri: h1-style must be auto, banner, rule or compact")
     assert(heading-numbers in ("inline", "hang", "none"), message: "centauri: heading-numbers must be inline, hang or none")
     let p = palette(accent, "light")
     let sz = t.scales.document
@@ -233,8 +244,8 @@
       margin: (top: 2.7cm, bottom: 2.3cm, left: margins.left, right: margins.right),
       header-ascent: 35%,
       footer-descent: 35%,
-      header: header-for(p, "light"),
-      footer: footer-for(p, "light"),
+      header: header-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity)),
+      footer: footer-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity)),
       background: if stage == "draft" {
         place(center + horizon, rotate(-35deg, text(size: sz.watermark, weight: 600, fill: color.mix((p.ink-hi, 5%), (p.paper, 95%), space: rgb), tracking: 0.05em)[DRAFT]))
       },
@@ -287,6 +298,10 @@
               title
             })))
           })
+      } else if style == "compact" {
+        // Same size as the other styles, without the band or rule, for pages that need the space.
+        block(above: 1.2em, below: 0.6em, width: 100%, sticky: true,
+          with-number(it, S().h1, t.weight.body, q.link, title))
       } else {
         block(above: 1.6em, below: 1.2em, width: 100%, {
           line(length: 100%, stroke: 0.75pt + q.ink-hi)
