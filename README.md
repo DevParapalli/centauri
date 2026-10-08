@@ -2,7 +2,7 @@
 
 Centauri is the print and slide half of the Proxima design system. It is light-first, builds on the tokens Proxima publishes in `tokens.toml`, and provides page furniture, covers, drafting controls and components for reports, proposals, RFP responses, handbooks, handouts, letters and slide decks.
 
-The complete reference for every component, argument and build rule is [`docs/reference.md`](docs/reference.md). It is written to serve as reference material for people and for AI agents generating Centauri source. Deck design rationale is in [`docs/deck-board.md`](docs/deck-board.md).
+The complete reference for every component, argument and build rule is [`docs/reference.md`](docs/reference.md). It is written to serve as reference material for people and for AI agents generating Centauri source. Deck design rationale is in [`docs/deck-board.md`](docs/deck-board.md). The same decks build for the screen with [`slidev-theme-proxima`](https://github.com/DevParapalli/proxima/tree/main/deck), the Slidev theme in the Proxima repository, which shares the archetypes, the frame and the build rules.
 
 ## Releases
 
