@@ -116,6 +116,7 @@ The single entry point for documents and decks. With `kind: "deck"` it builds sl
 | `sensitivity` | `none` | Label printed after the page number, such as `"Internal"`. |
 | `header-rule` | `auto` | Rule under the header: a stroke, `none` or `auto` (0.5pt hairline). |
 | `footer-rule` | `auto` | Rule above the footer, as `header-rule`. |
+| `folio` | `auto` | Footer-centre page label: a function `(page, total, sensitivity) => content`, or `auto` for `n/N \| sensitivity`. See [Page furniture](#page-furniture). |
 | `req-label` | `"Reference"` | Word printed before a [`req`](#req) identifier. |
 
 Passing `auto` for a *kind* argument uses the kind's default.
@@ -154,7 +155,7 @@ Dictionary of per-kind defaults. Explicit arguments to `centauri` override them.
 Inner pages carry left, centre and right slots above the header rule and below the footer rule. Each slot takes content, `none`, `auto`, or a function of the page tone (`tone => content`).
 
 - Header centre: empty by default. `auto` prints the running head, the level 1 heading in force on the page.
-- Footer centre: `auto` by default, which prints the page as `n/N` followed by ` | ` and the sensitivity label when one is set.
+- Footer centre: `auto` by default, which prints the folio: the page as `n/N` followed by ` | ` and the sensitivity label when one is set. `folio` replaces it with a function of the page number, the total and the sensitivity, such as `folio: (n, total, s) => [#s | #n]`; the sensitivity is the one in force on that page.
 - Other slots: `auto` prints nothing.
 
 Slots given to `centauri(header:, footer:, sensitivity:)` apply from page 1, whatever the page opens with.
@@ -163,9 +164,9 @@ A rule sits under the header and above the footer. `header-rule` and `footer-rul
 
 ### `furniture`
 
-`furniture(header: (:), footer: (:), sensitivity: auto, header-rule:, footer-rule:)`
+`furniture(header: (:), footer: (:), sensitivity: auto, header-rule:, footer-rule:, folio:)`
 
-Changes slots and rules from this point on. Keys given replace the current value; keys left out are kept, and `auto` restores a rule's default. Header and footer read the furniture as it stands at the top of each page, so a change takes effect on the next page.
+Changes slots, rules and the folio from this point on. Keys given replace the current value; keys left out are kept, and `auto` restores a rule's or the folio's default. Header and footer read the furniture as it stands at the top of each page, so a change takes effect on the next page.
 
 ```typ
 #furniture(footer: (left: [Client copy]), sensitivity: "Confidential")
@@ -235,9 +236,20 @@ A full-page divider numbered `Part I`, `Part II`, and so on, for grouping chapte
 
 ### `annexes`
 
-`#show: annexes`
+`#show: annexes` or `#show: annexes.with(title: none, subtitle: none, word: "Annex", numbering: ("A", "A.1"))`
 
-Everything after it is an annex: level 1 headings are numbered `A`, `B`, … and lower levels `A.1`, `A.2`, ….
+Everything after it is an annex. Heading numbers restart: level 1 headings take the first pattern (`A`, `B`, …) and lower levels the second (`A.1`, `A.2`, …).
+
+| Argument | Effect |
+|---|---|
+| `title` | When set, a divider page with this title comes first, in the style of [`part`](#part). `none` draws no divider. |
+| `subtitle` | Set beneath the divider title. |
+| `word` | What a reference to an annex heading prints before its number: `@key` reads "Annex A". |
+| `numbering` | Two numbering patterns: level 1, then lower levels. Anything else stops the build. |
+
+```typ
+#show: annexes.with(title: [Appendices], word: "Appendix", numbering: ("I", "I.a"))
+```
 
 ### `letter`
 
@@ -439,6 +451,22 @@ A numbered note in the outer margin when `sidenotes` is on (the `handbook` defau
 Terms sorted and grouped by first letter. Each entry is `(term, definition)`; `term` SHOULD be a string so it sorts correctly.
 
 Figures and tables captioned with Typst's `figure` get a mono label, such as `FIGURE 1` or `TABLE 1`, before the caption.
+
+### `fit-logo`
+
+`fit-logo(logo, height: auto, max-width: auto)`
+
+Scales an image, a box or any content down until it fits `height` and `max-width`, keeping its proportions; a logo already within both is left at its size. For partner and client logos that MUST NOT exceed the host brand's own.
+
+### `logo-line`
+
+`logo-line(body, height: auto, max-width: auto)`
+
+Every image and box in `body` is fitted as `fit-logo` does, then centred halfway up the capitals of the text around it instead of sitting on the baseline. A box with equal top and bottom insets keeps its own text on the same centre line.
+
+```typ
+#logo-line(height: 0.8cm)[Prepared for #image("client.svg") Client name]
+```
 
 ---
 

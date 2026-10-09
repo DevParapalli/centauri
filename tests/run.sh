@@ -24,6 +24,9 @@ reject tests/h1-banner.typ "kind brief allows 1"
 reject tests/h1-style-invalid.typ "h1-style must be"
 reject tests/label-case-invalid.typ "label-case must be"
 reject tests/furniture-rule-invalid.typ "header-rule must be a stroke, none or auto"
+reject tests/folio-invalid.typ "folio must be a function"
+reject tests/annexes-invalid.typ "annexes numbering takes two patterns"
+pass tests/fit-logo.typ
 
 # Decks: every mode and both projections
 pass examples/deck.typ
@@ -38,8 +41,11 @@ reject tests/slide-overflow.typ "overflows its page"
 reject tests/slide-title-stop.typ "ends with a full stop"
 
 compile tests/captions.typ "$out/c.pdf" 2>/dev/null
+# Labels are letter-spaced capitals; some pdftotext versions split them into "F I G U R E",
+# so the match allows a space between letters.
 for want in "FIGURE 1" "TABLE 1"; do
-  if pdftotext -layout "$out/c.pdf" - | grep -qF "$want"; then echo "ok    caption label $want"; else echo "FAIL  caption label $want"; fail=1; fi
+  pattern=$(printf '%s' "$want" | sed 's/./& ?/g')
+  if pdftotext -layout "$out/c.pdf" - | grep -qE "$pattern"; then echo "ok    caption label $want"; else echo "FAIL  caption label $want"; fail=1; fi
 done
 
 compile tests/label-case.typ "$out/l.pdf" 2>/dev/null
@@ -56,6 +62,35 @@ for spec in "1:2:0" "2:0:1" "3:0:1"; do
   pdftocairo -svg -f "$page" -l "$page" "$out/r.pdf" "$out/r.svg"
   hair=$(grep -c 'stroke-width="0.5"' "$out/r.svg"); red=$(grep -c 'stroke="rgb(100%, 0%, 0%)"' "$out/r.svg")
   if [ "$hair" = "$want_hair" ] && [ "$red" = "$want_red" ]; then echo "ok    furniture rules page $page"; else echo "FAIL  furniture rules page $page: $hair hairlines, $red red (want $want_hair, $want_red)"; fail=1; fi
+done
+
+# Folio: a custom function on page 1, a new sensitivity on page 2, the default restored on page 3.
+compile tests/folio.typ "$out/fo.pdf" 2>/dev/null
+for spec in "1:Internal – page 1 of 3" "2:Public – page 2 of 3" "3:3/3 | Public"; do
+  page=${spec%%:*}; want=${spec#*:}
+  if pdftotext -f "$page" -l "$page" "$out/fo.pdf" - | grep -qF "$want"; then echo "ok    folio page $page: $want"; else echo "FAIL  folio page $page: $want"; fail=1; fi
+done
+
+# Annexes: numbering restarts at A with no divider by default; a title adds a divider page, and
+# word and numbering set the reference word and patterns.
+compile tests/annexes.typ "$out/an.pdf" 2>/dev/null
+for want in "2 Body two" "See Annex A." "A Key personnel" "A.1 Delivery lead" "B Glossary"; do
+  if pdftotext "$out/an.pdf" - | grep -qxF "$want"; then echo "ok    annexes: $want"; else echo "FAIL  annexes: $want"; fail=1; fi
+done
+[ "$(pdfinfo "$out/an.pdf" | awk '/^Pages:/ {print $2}')" = 1 ] && echo "ok    annexes: no divider by default" || { echo "FAIL  annexes: unexpected divider"; fail=1; }
+compile tests/annexes-custom.typ "$out/ac.pdf" 2>/dev/null
+for spec in "1:See Appendix I." "2:Appendices" "2:Supporting material" "3:I Key personnel" "3:I.a Delivery lead" "3:II Glossary"; do
+  page=${spec%%:*}; want=${spec#*:}
+  if pdftotext -f "$page" -l "$page" "$out/ac.pdf" - | grep -qxF "$want"; then echo "ok    annexes custom page $page: $want"; else echo "FAIL  annexes custom page $page: $want"; fail=1; fi
+done
+
+# logo-line: an image (page 1) and a box with text (page 2), both 1.2cm, are capped at 0.8cm
+# (94px at 300 ppi) and centred on the cap-height midline within a pixel.
+compile tests/logo-line.typ "$out/ll.pdf" 2>/dev/null
+for page in 1 2; do
+  pdftoppm -f "$page" -l "$page" -r 300 -singlefile "$out/ll.pdf" "$out/ll"
+  set -- $(uv run --quiet tests/centre.py "$out/ll.ppm")
+  if [ "$1" -le 95 ] && [ "$2" -le 2 ]; then echo "ok    logo-line page $page: ${1}px, offset $2"; else echo "FAIL  logo-line page $page: ${1}px tall, offset $2 half-pixels"; fail=1; fi
 done
 
 compile tests/furniture.typ "$out/f.pdf" 2>/dev/null

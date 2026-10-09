@@ -5,7 +5,6 @@
 
 #let _stage = state("centauri-stage", "draft")
 #let _req-label = state("centauri-req-label", "Reference")
-#let _section-word = state("centauri-section-word", "Section")
 #let _todos = counter("centauri-todo")
 #let _sidenotes = state("centauri-sidenotes", false)
 #let _sn = counter("centauri-sidenote")
@@ -32,6 +31,7 @@
   sensitivity: none,
   header-rule: auto,
   footer-rule: auto,
+  folio: auto,
 ))
 
 #let _register-kinds = (
@@ -45,14 +45,20 @@
 #let _rule-keys = ("header-rule", "footer-rule")
 
 /// Update page furniture from this point on. Keys: left, center, right. Values: content, none, auto, or tone => content.
-/// `header-rule` and `footer-rule`: a stroke, none, or auto for the hairline; left out, kept.
-// Rules arrive as named sinks so that leaving one out (keep) differs from passing auto (default).
+/// `header-rule` and `footer-rule`: a stroke, none, or auto for the hairline. `folio`: a function
+/// (page, total, sensitivity) => content for the footer centre's auto slot, or auto for "n/N | sensitivity".
+/// Left out, each is kept.
+// These arrive as named sinks so that leaving one out (keep) differs from passing auto (default).
 #let furniture(header: (:), footer: (:), sensitivity: auto, ..rules) = {
   assert(rules.pos().len() == 0, message: "centauri: furniture takes named arguments only")
   for (k, v) in rules.named() {
-    assert(k in _rule-keys, message: "centauri: furniture takes header, footer, sensitivity, header-rule and footer-rule")
-    assert(v == auto or v == none or type(v) in (stroke, length, color, dictionary),
-      message: "centauri: " + k + " must be a stroke, none or auto")
+    assert(k in _rule-keys or k == "folio", message: "centauri: furniture takes header, footer, sensitivity, header-rule, footer-rule and folio")
+    if k == "folio" {
+      assert(v == auto or type(v) == function, message: "centauri: folio must be a function (page, total, sensitivity) => content, or auto")
+    } else {
+      assert(v == auto or v == none or type(v) in (stroke, length, color, dictionary),
+        message: "centauri: " + k + " must be a stroke, none or auto")
+    }
   }
   _furniture.update(f => f + (
     header: f.header + header,
@@ -109,20 +115,24 @@
 
   // Slots take content, none, auto or a function of the tone. Auto is the running
   // head in the header centre and the page number in the footer centre.
-  let slot(value, tone, q, sensitivity, is-footer-center, is-header-center: false) = {
+  let slot(value, tone, q, f, is-footer-center, is-header-center: false) = {
     if type(value) == function { value(tone) } else if value == auto and is-header-center { running-head(tone) } else if value == auto and is-footer-center {
-      text(font: mono, size: S().label + 0.5pt, fill: q.ink-mid)[
-        #counter(page).display("1/1", both: true)#if sensitivity != none [ | #sensitivity]
-      ]
+      if f.folio == auto {
+        text(font: mono, size: S().label + 0.5pt, fill: q.ink-mid)[
+          #counter(page).display("1/1", both: true)#if f.sensitivity != none [ | #f.sensitivity]
+        ]
+      } else {
+        (f.folio)(counter(page).get().first(), counter(page).final().first(), f.sensitivity)
+      }
     } else if value == auto { none } else { value }
   }
 
   let row(f, slots, tone, q, footer) = grid(
     columns: (1fr, 1fr, 1fr),
     align: (left + horizon, center + horizon, right + horizon),
-    slot(slots.left, tone, q, f.sensitivity, false),
-    slot(slots.center, tone, q, f.sensitivity, footer, is-header-center: not footer),
-    slot(slots.right, tone, q, f.sensitivity, false),
+    slot(slots.left, tone, q, f, false),
+    slot(slots.center, tone, q, f, footer, is-header-center: not footer),
+    slot(slots.right, tone, q, f, false),
   )
 
   // Header and footer both read furniture as it stood at the top of the page.
@@ -223,6 +233,7 @@
     sensitivity: none,
     header-rule: auto,
     footer-rule: auto,
+    folio: auto,
     req-label: "Reference",
     body,
   ) = {
@@ -270,8 +281,8 @@
       margin: (top: 2.7cm, bottom: 2.3cm, left: margins.left, right: margins.right),
       header-ascent: 35%,
       footer-descent: 35%,
-      header: header-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity, rules: (header-rule: header-rule, footer-rule: footer-rule))),
-      footer: footer-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity, rules: (header-rule: header-rule, footer-rule: footer-rule))),
+      header: header-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity, rules: (header-rule: header-rule, footer-rule: footer-rule, folio: folio))),
+      footer: footer-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity, rules: (header-rule: header-rule, footer-rule: footer-rule, folio: folio))),
       background: if stage == "draft" {
         place(center + horizon, rotate(-35deg, text(size: sz.watermark, weight: 600, fill: color.mix((p.ink-hi, 5%), (p.paper, 95%), space: rgb), tracking: 0.05em)[DRAFT]))
       },
@@ -283,7 +294,7 @@
     _sidenotes.update(sidenotes)
     _margins.update(margins)
     _req-label.update(req-label)
-    furniture(header: header, footer: footer, sensitivity: sensitivity, header-rule: header-rule, footer-rule: footer-rule)
+    furniture(header: header, footer: footer, sensitivity: sensitivity, header-rule: header-rule, footer-rule: footer-rule, folio: folio)
 
     set heading(numbering: numbering)
     show heading: set text(fill: p.ink-hi)
@@ -508,12 +519,26 @@
     }
   }
 
-  let annexes(body) = {
+  // Everything after it is an annex: heading numbers restart, level 1 in the first pattern and
+  // lower levels in the second. A title draws a divider page first, in the style of `part`.
+  let annexes(title: none, subtitle: none, word: "Annex", numbering: ("A", "A.1"), body) = {
+    assert(type(numbering) == array and numbering.len() == 2, message: "centauri: annexes numbering takes two patterns, level 1 and below")
+    if title != none {
+      pagebreak(weak: true)
+      context {
+        let q = pal()
+        page(header: none, footer: none, background: none, {
+          set align(left + horizon)
+          text(size: S().display, weight: t.weight.h1, tracking: -0.015em, fill: q.ink-hi, title)
+          if subtitle != none { v(0.8em); text(size: S().h4, fill: q.ink-mid, subtitle) }
+        })
+      }
+    }
     counter(std.heading).update(0)
-    _section-word.update("Annex")
-    set std.heading(numbering: (..n) => {
+    // The supplement is the word a cross-reference prints before the number, as in "Annex A".
+    set std.heading(supplement: word, numbering: (..n) => {
       let n = n.pos()
-      if n.len() == 1 { std.numbering("A", ..n) } else { std.numbering("A.1", ..n) }
+      std.numbering(if n.len() == 1 { numbering.first() } else { numbering.last() }, ..n)
     })
     body
   }

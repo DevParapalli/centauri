@@ -4,6 +4,7 @@
 
 #import "src/tokens.typ": theme, scale, contrast, luminance, accents, phi, ramp, ink-on
 #import "src/make.typ": furniture, tone, kinds
+#import "src/logos.typ": fit-logo, logo-line
 #import "src/slides.typ": make-kit, aspects
 
 /// Build a kit from a custom theme: `#let kit = make-kit(theme(accent: "teal"))`.
