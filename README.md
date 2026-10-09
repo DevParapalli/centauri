@@ -6,14 +6,14 @@ The complete reference for every component, argument and build rule is [`docs/re
 
 ## Releases
 
-Centauri is released in lockstep with Proxima. Proxima leads: a Proxima release tags `tokens.toml`, and the Centauri release with the same version vendors that file. Centauri 0.2.0 carries the tokens from Proxima 0.2.0.
+Centauri is released in lockstep with Proxima. Proxima leads: a Proxima release tags `tokens.toml`, and the Centauri release with the same version vendors that file. Centauri 0.3.0 carries the tokens from Proxima 0.3.0.
 
 `src/tokens.toml` MUST NOT be edited by hand. It is written by:
 
 ```sh
-uv run scripts/sync-tokens.py --ref v0.2.0            # from github.com/DevParapalli/proxima
+uv run scripts/sync-tokens.py --ref v0.3.0            # from github.com/DevParapalli/proxima
 uv run scripts/sync-tokens.py --from ../proxima/tokens.toml
-uv run scripts/sync-tokens.py --ref v0.2.0 --check    # exits 1 when the copy differs
+uv run scripts/sync-tokens.py --ref v0.3.0 --check    # exits 1 when the copy differs
 ```
 
 ## Requirements
@@ -26,7 +26,7 @@ uv run scripts/sync-tokens.py --ref v0.2.0 --check    # exits 1 when the copy di
 One import serves every kind of output.
 
 ```typ
-#import "@preview/centauri:0.2.0": *
+#import "@preview/centauri:0.3.0": *
 
 #show: centauri.with(kind: "report", accent: "teal", title: "Example report")
 
@@ -38,7 +38,7 @@ Body text.
 A deck uses the same import and the same components:
 
 ```typ
-#import "@preview/centauri:0.2.0": *
+#import "@preview/centauri:0.3.0": *
 
 #show: centauri.with(kind: "deck", aspect: "16:9", accent: "ember", label: "Class 1")
 
@@ -165,6 +165,12 @@ Output modes are selected with `--input mode=`:
 `notes[...]` carries the speaker script. It appears in handouts, and on the slides only with `--input notes=true`.
 
 Code blocks are highlighted with a theme generated from the palette in force, so highlighting follows the accent and the tone.
+
+## Changes in 0.3.0
+
+- Carries the tokens from Proxima 0.3.0; the values are unchanged from 0.2.0.
+- `theme() + (label-case: "as-written")` sets small labels in the author's case, without tracking, for brands that avoid capitals.
+- `header-rule` and `footer-rule` on `centauri` and `furniture` take a stroke, `none` or `auto`; a rule left out of `furniture` is kept.
 
 ## Changes in 0.2.0
 

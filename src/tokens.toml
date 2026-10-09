@@ -1,4 +1,4 @@
-# Vendored by scripts/sync-tokens.py from ../design-system-master/tokens.toml.
+# Vendored by scripts/sync-tokens.py from ../proxima/tokens.toml.
 # Do not edit. Change tokens.toml in the proxima repository and sync again.
 
 # Proxima–Centauri shared tokens.
@@ -12,7 +12,7 @@
 # spacing, motion, glass and page furniture belong to each system: Proxima is
 # set for screens, Centauri for print.
 
-version = "0.2.0"
+version = "0.3.0"
 
 [scale]
 # size(hN) = body * phi ^ ((6 - N) / k), h6 == body
