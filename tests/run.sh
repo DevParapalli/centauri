@@ -139,5 +139,7 @@ else
   echo "ok    components use the tone-resolved palette"
 fi
 
+uv run --quiet tests/sync-tokens.py || fail=1
+
 rm -rf "$out"
 exit $fail

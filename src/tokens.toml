@@ -3,7 +3,7 @@
 
 # Proxima–Centauri shared tokens.
 #
-# Canonical copy: https://github.com/DevParapalli/proxima/blob/main/tokens.toml
+# Canonical copy: https://github.com/DevParapalli/proxima/blob/master/tokens.toml
 # Proxima regenerates its CSS token blocks from this file with scripts/tokens.py.
 # Centauri vendors a copy with scripts/sync-tokens.py; do not edit that copy.
 #

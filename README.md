@@ -11,10 +11,13 @@ Centauri and Proxima share major and minor versions; patch versions move indepen
 `src/tokens.toml` MUST NOT be edited by hand. It is written by:
 
 ```sh
-uv run scripts/sync-tokens.py --ref v0.3.0            # from github.com/DevParapalli/proxima
+uv run scripts/sync-tokens.py                         # latest Proxima vX.Y.* for typst.toml's X.Y
+uv run scripts/sync-tokens.py --ref 0.3               # the same, X.Y given; must match typst.toml
 uv run scripts/sync-tokens.py --from ../proxima/tokens.toml
-uv run scripts/sync-tokens.py --ref v0.3.0 --check    # exits 1 when the copy differs
+uv run scripts/sync-tokens.py --check                 # exits 1 when the copy differs
 ```
+
+`--ref` takes `X.Y` or `vX.Y` and finds the tag with `git ls-remote`, so `git` must be installed.
 
 ## Requirements
 
