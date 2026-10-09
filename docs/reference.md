@@ -114,6 +114,8 @@ The single entry point for documents and decks. With `kind: "deck"` it builds sl
 | `header` | `(:)` | Header slots; see [Page furniture](#page-furniture). |
 | `footer` | `(:)` | Footer slots. |
 | `sensitivity` | `none` | Label printed after the page number, such as `"Internal"`. |
+| `header-rule` | `auto` | Rule under the header: a stroke, `none` or `auto` (0.5pt hairline). |
+| `footer-rule` | `auto` | Rule above the footer, as `header-rule`. |
 | `req-label` | `"Reference"` | Word printed before a [`req`](#req) identifier. |
 
 Passing `auto` for a *kind* argument uses the kind's default.
@@ -157,11 +159,13 @@ Inner pages carry left, centre and right slots above the header rule and below t
 
 Slots given to `centauri(header:, footer:, sensitivity:)` apply from page 1, whatever the page opens with.
 
+A rule sits under the header and above the footer. `header-rule` and `footer-rule` take a stroke (`1pt + black`), `none` to drop the rule, or `auto` for the default 0.5pt hairline in the page's hairline colour. Any other value stops the build.
+
 ### `furniture`
 
-`furniture(header: (:), footer: (:), sensitivity: auto)`
+`furniture(header: (:), footer: (:), sensitivity: auto, header-rule:, footer-rule:)`
 
-Changes slots from this point on. Keys given replace the current value; keys left out are kept. Header and footer read the furniture as it stands at the top of each page, so a change takes effect on the next page.
+Changes slots and rules from this point on. Keys given replace the current value; keys left out are kept, and `auto` restores a rule's default. Header and footer read the furniture as it stands at the top of each page, so a change takes effect on the next page.
 
 ```typ
 #furniture(footer: (left: [Client copy]), sensitivity: "Confidential")

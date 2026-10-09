@@ -30,6 +30,8 @@
   header: (left: none, center: none, right: none),
   footer: (left: none, center: auto, right: none),
   sensitivity: none,
+  header-rule: auto,
+  footer-rule: auto,
 ))
 
 #let _register-kinds = (
@@ -40,12 +42,24 @@
   issue: (word: "Issue", prefix: "I", tone: "rose"),
 )
 
+#let _rule-keys = ("header-rule", "footer-rule")
+
 /// Update page furniture from this point on. Keys: left, center, right. Values: content, none, auto, or tone => content.
-#let furniture(header: (:), footer: (:), sensitivity: auto) = _furniture.update(f => (
-  header: f.header + header,
-  footer: f.footer + footer,
-  sensitivity: if sensitivity == auto { f.sensitivity } else { sensitivity },
-))
+/// `header-rule` and `footer-rule`: a stroke, none, or auto for the hairline; left out, kept.
+// Rules arrive as named sinks so that leaving one out (keep) differs from passing auto (default).
+#let furniture(header: (:), footer: (:), sensitivity: auto, ..rules) = {
+  assert(rules.pos().len() == 0, message: "centauri: furniture takes named arguments only")
+  for (k, v) in rules.named() {
+    assert(k in _rule-keys, message: "centauri: furniture takes header, footer, sensitivity, header-rule and footer-rule")
+    assert(v == auto or v == none or type(v) in (stroke, length, color, dictionary),
+      message: "centauri: " + k + " must be a stroke, none or auto")
+  }
+  _furniture.update(f => f + (
+    header: f.header + header,
+    footer: f.footer + footer,
+    sensitivity: if sensitivity == auto { f.sensitivity } else { sensitivity },
+  ) + rules.named())
+}
 
 #let _escape(s) = s.replace(regex("[\\\\^$.|?*+()\\[\\]{}]"), m => "\\" + m.text)
 
@@ -114,11 +128,13 @@
   // Header and footer both read furniture as it stood at the top of the page.
   // Page 1's header is laid out before the document's first furniture update takes
   // effect, so the document's own settings are passed in as `first` and applied there.
-  let with-first(f, first) = if first == none { f } else {(
+  let with-first(f, first) = if first == none { f } else { f + (
     header: f.header + first.header,
     footer: f.footer + first.footer,
     sensitivity: if first.sensitivity == auto { f.sensitivity } else { first.sensitivity },
-  )}
+  ) + first.rules }
+
+  let rule-stroke(r, q) = if r == auto { 0.5pt + q.hairline } else { r }
 
   let header-for(q, tone, first: none) = context {
     [#metadata(none) <centauri-page-top>]
@@ -126,8 +142,10 @@
     if here().page() == 1 { f = with-first(f, first) }
     set text(fill: q.ink-mid, size: S().small)
     row(f, f.header, tone, q, false)
-    v(-4pt)
-    line(length: 100%, stroke: 0.5pt + q.hairline)
+    if f.header-rule != none {
+      v(-4pt)
+      line(length: 100%, stroke: rule-stroke(f.header-rule, q))
+    }
   }
 
   let footer-for(q, tone, first: none) = context {
@@ -136,8 +154,10 @@
     let f = if tops.len() > 0 { _furniture.at(tops.first().location()) } else { _furniture.get() }
     if page == 1 { f = with-first(f, first) }
     set text(fill: q.ink-mid, size: S().small)
-    line(length: 100%, stroke: 0.5pt + q.hairline)
-    v(-4pt)
+    if f.footer-rule != none {
+      line(length: 100%, stroke: rule-stroke(f.footer-rule, q))
+      v(-4pt)
+    }
     row(f, f.footer, tone, q, true)
   }
 
@@ -201,6 +221,8 @@
     header: (:),
     footer: (:),
     sensitivity: none,
+    header-rule: auto,
+    footer-rule: auto,
     req-label: "Reference",
     body,
   ) = {
@@ -248,8 +270,8 @@
       margin: (top: 2.7cm, bottom: 2.3cm, left: margins.left, right: margins.right),
       header-ascent: 35%,
       footer-descent: 35%,
-      header: header-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity)),
-      footer: footer-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity)),
+      header: header-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity, rules: (header-rule: header-rule, footer-rule: footer-rule))),
+      footer: footer-for(p, "light", first: (header: header, footer: footer, sensitivity: sensitivity, rules: (header-rule: header-rule, footer-rule: footer-rule))),
       background: if stage == "draft" {
         place(center + horizon, rotate(-35deg, text(size: sz.watermark, weight: 600, fill: color.mix((p.ink-hi, 5%), (p.paper, 95%), space: rgb), tracking: 0.05em)[DRAFT]))
       },
@@ -261,7 +283,7 @@
     _sidenotes.update(sidenotes)
     _margins.update(margins)
     _req-label.update(req-label)
-    furniture(header: header, footer: footer, sensitivity: sensitivity)
+    furniture(header: header, footer: footer, sensitivity: sensitivity, header-rule: header-rule, footer-rule: footer-rule)
 
     set heading(numbering: numbering)
     show heading: set text(fill: p.ink-hi)

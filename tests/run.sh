@@ -23,6 +23,7 @@ reject tests/contrast.typ "below 4.5:1"
 reject tests/h1-banner.typ "kind brief allows 1"
 reject tests/h1-style-invalid.typ "h1-style must be"
 reject tests/label-case-invalid.typ "label-case must be"
+reject tests/furniture-rule-invalid.typ "header-rule must be a stroke, none or auto"
 
 # Decks: every mode and both projections
 pass examples/deck.typ
@@ -46,6 +47,16 @@ for want in "Figure 1" "Owner key" "Risk R1"; do
   if pdftotext -layout "$out/l.pdf" - | grep -qF "$want"; then echo "ok    label-case as-written: $want"; else echo "FAIL  label-case as-written: $want"; fail=1; fi
 done
 if pdftotext -layout "$out/l.pdf" - | grep -qE "FIGURE|OWNER KEY|RISK"; then echo "FAIL  label-case as-written still prints capitals"; fail=1; else echo "ok    label-case as-written prints no capitals"; fi
+
+# Rules: page 1 keeps both hairlines; `furniture` then drops the header rule and sets a red
+# footer rule, which page 2 shows and page 3 keeps.
+compile tests/furniture-rules.typ "$out/r.pdf" 2>/dev/null
+for spec in "1:2:0" "2:0:1" "3:0:1"; do
+  page=${spec%%:*}; rest=${spec#*:}; want_hair=${rest%%:*}; want_red=${rest#*:}
+  pdftocairo -svg -f "$page" -l "$page" "$out/r.pdf" "$out/r.svg"
+  hair=$(grep -c 'stroke-width="0.5"' "$out/r.svg"); red=$(grep -c 'stroke="rgb(100%, 0%, 0%)"' "$out/r.svg")
+  if [ "$hair" = "$want_hair" ] && [ "$red" = "$want_red" ]; then echo "ok    furniture rules page $page"; else echo "FAIL  furniture rules page $page: $hair hairlines, $red red (want $want_hair, $want_red)"; fail=1; fi
+done
 
 compile tests/furniture.typ "$out/f.pdf" 2>/dev/null
 for spec in "1:1/3 | Internal" "2:CLIENT" "2:2/3 | Confidential" "3:3/3 | Public"; do
