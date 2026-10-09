@@ -165,5 +165,8 @@
       deck: scale(deck.body, deck.k) + (watermark: 110pt),
     ),
     radius: (s: 6pt, m: 9pt, l: 13.5pt, full: 999pt),
+    // Small labels (captions, key-value keys, table headers, register cards): "upper" sets
+    // them in tracked capitals, "as-written" keeps the author's case for brands that avoid capitals.
+    label-case: "upper",
   )
 }

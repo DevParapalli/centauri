@@ -22,6 +22,7 @@ reject tests/final-lint.typ "lint match"
 reject tests/contrast.typ "below 4.5:1"
 reject tests/h1-banner.typ "kind brief allows 1"
 reject tests/h1-style-invalid.typ "h1-style must be"
+reject tests/label-case-invalid.typ "label-case must be"
 
 # Decks: every mode and both projections
 pass examples/deck.typ
@@ -39,6 +40,12 @@ compile tests/captions.typ "$out/c.pdf" 2>/dev/null
 for want in "FIGURE 1" "TABLE 1"; do
   if pdftotext -layout "$out/c.pdf" - | grep -qF "$want"; then echo "ok    caption label $want"; else echo "FAIL  caption label $want"; fail=1; fi
 done
+
+compile tests/label-case.typ "$out/l.pdf" 2>/dev/null
+for want in "Figure 1" "Owner key" "Risk R1"; do
+  if pdftotext -layout "$out/l.pdf" - | grep -qF "$want"; then echo "ok    label-case as-written: $want"; else echo "FAIL  label-case as-written: $want"; fail=1; fi
+done
+if pdftotext -layout "$out/l.pdf" - | grep -qE "FIGURE|OWNER KEY|RISK"; then echo "FAIL  label-case as-written still prints capitals"; fail=1; else echo "ok    label-case as-written prints no capitals"; fi
 
 compile tests/furniture.typ "$out/f.pdf" 2>/dev/null
 for spec in "1:1/3 | Internal" "2:CLIENT" "2:2/3 | Confidential" "3:3/3 | Public"; do

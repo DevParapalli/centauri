@@ -59,7 +59,11 @@
   let palette(accent, tone) = t.palettes.at(accent).at(tone)
   let S() = t.scales.at(_size.get())
 
-  let label-text(q, body, size: auto) = context text(font: mono, size: if size == auto { S().label } else { size }, tracking: 0.12em, weight: t.weight.label, fill: q.ink-mid, upper(body))
+  assert(t.label-case in ("upper", "as-written"), message: "centauri: label-case must be upper or as-written")
+  // Tracking only suits capitals, so labels set as written lose it.
+  let caps(body) = if t.label-case == "upper" { upper(body) } else { body }
+  let caps-track(em) = if t.label-case == "upper" { em } else { 0em }
+  let label-text(q, body, size: auto) = context text(font: mono, size: if size == auto { S().label } else { size }, tracking: caps-track(0.12em), weight: t.weight.label, fill: q.ink-mid, caps(body))
 
   let tone-of(q, tone) = if tone == "mute" or tone == none {
     (text: q.ink-mid, fill: q.panel, line: q.hairline)
@@ -370,7 +374,7 @@
           fill: if spec.tone == none { q.panel } else { s.fill },
           stroke: 0.5pt + (if spec.tone == none { q.hairline } else { s.line }),
           align(left, {
-            text(font: mono, size: S().label + 0.5pt, tracking: 0.18em, fill: if spec.tone == none { q.ink-mid } else { s.text }, upper[#spec.word #text(weight: 500, fill: if spec.tone == none { q.accent-deep } else { s.text }, id)])
+            text(font: mono, size: S().label + 0.5pt, tracking: caps-track(0.18em), fill: if spec.tone == none { q.ink-mid } else { s.text }, caps[#spec.word #text(weight: 500, fill: if spec.tone == none { q.accent-deep } else { s.text }, id)])
             linebreak()
             text(fill: q.ink-hi, it.caption.body)
           }),

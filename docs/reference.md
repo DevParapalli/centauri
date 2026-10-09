@@ -678,6 +678,8 @@ Speaker notes for the slide it follows. Printed beneath the slide in `handout` m
 
 Builds a theme dictionary: palettes for every accent in light and dark, fonts, weights, type scales and radii. Any key MAY be overridden by adding a dictionary: `theme() + (radius: (s: 4pt, m: 6pt, l: 9pt, full: 999pt))`.
 
+`label-case` sets the small labels: figure and table captions, key–value keys, table headers, attributions, KPI and signature labels, and register cards. `"upper"` (the default) sets them in tracked capitals; `"as-written"` keeps the author's case without tracking, for brands that avoid capitals: `theme() + (label-case: "as-written")`. Any other value stops the build.
+
 ### `make-kit`
 
 `make-kit(theme)`
