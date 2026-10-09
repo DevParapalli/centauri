@@ -114,9 +114,9 @@
   }
 
   // Slots take content, none, auto or a function of the tone. Auto is the running
-  // head in the header centre and the page number in the footer centre.
-  let slot(value, tone, q, f, is-footer-center, is-header-center: false) = {
-    if type(value) == function { value(tone) } else if value == auto and is-header-center { running-head(tone) } else if value == auto and is-footer-center {
+  // head in the header centre and the folio in any footer slot.
+  let slot(value, tone, q, f, is-footer, is-header-center: false) = {
+    if type(value) == function { value(tone) } else if value == auto and is-header-center { running-head(tone) } else if value == auto and is-footer {
       if f.folio == auto {
         text(font: mono, size: S().label + 0.5pt, fill: q.ink-mid)[
           #counter(page).display("1/1", both: true)#if f.sensitivity != none [ | #f.sensitivity]
@@ -130,9 +130,9 @@
   let row(f, slots, tone, q, footer) = grid(
     columns: (1fr, 1fr, 1fr),
     align: (left + horizon, center + horizon, right + horizon),
-    slot(slots.left, tone, q, f, false),
+    slot(slots.left, tone, q, f, footer),
     slot(slots.center, tone, q, f, footer, is-header-center: not footer),
-    slot(slots.right, tone, q, f, false),
+    slot(slots.right, tone, q, f, footer),
   )
 
   // Header and footer both read furniture as it stood at the top of the page.

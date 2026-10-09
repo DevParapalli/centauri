@@ -71,6 +71,11 @@ for spec in "1:Internal – page 1 of 3" "2:Public – page 2 of 3" "3:3/3 | Pub
   if pdftotext -f "$page" -l "$page" "$out/fo.pdf" - | grep -qF "$want"; then echo "ok    folio page $page: $want"; else echo "FAIL  folio page $page: $want"; fail=1; fi
 done
 
+# auto in the footer's right slot prints the folio there: "Internal" sits in the right third.
+compile tests/folio-right.typ "$out/fr.pdf" 2>/dev/null
+mid=$(pdftotext -bbox "$out/fr.pdf" - | awk -F'"' '/<page/ {w=$2} />Internal</ {printf "%d", ($2+$6)/2*100/w}')
+if [ -n "$mid" ] && [ "$mid" -gt 67 ]; then echo "ok    folio in the right footer slot ($mid%)"; else echo "FAIL  folio not in the right footer slot (${mid:-missing}%)"; fail=1; fi
+
 # Annexes: numbering restarts at A with no divider by default; a title adds a divider page, and
 # word and numbering set the reference word and patterns.
 compile tests/annexes.typ "$out/an.pdf" 2>/dev/null

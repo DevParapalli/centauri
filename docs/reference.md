@@ -156,7 +156,8 @@ Inner pages carry left, centre and right slots above the header rule and below t
 
 - Header centre: empty by default. `auto` prints the running head, the level 1 heading in force on the page.
 - Footer centre: `auto` by default, which prints the folio: the page as `n/N` followed by ` | ` and the sensitivity label when one is set. `folio` replaces it with a function of the page number, the total and the sensitivity, such as `folio: (n, total, s) => [#s | #n]`; the sensitivity is the one in force on that page.
-- Other slots: `auto` prints nothing.
+- Footer left and right: `auto` prints the folio too, so a design can move it out of the centre: `footer: (center: none, right: auto)`.
+- Header left and right: `auto` prints nothing.
 
 Slots given to `centauri(header:, footer:, sensitivity:)` apply from page 1, whatever the page opens with.
 
