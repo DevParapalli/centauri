@@ -4,7 +4,7 @@
 #import "/lib.typ": *
 
 #let projection = sys.inputs.at("projection", default: "dark")
-#show: centauri.with(kind: "deck", aspect: "16:9", projection: projection, label: "Centauri accents", date: projection + " projection", presenter: "Centauri 0.3.0", title: "Centauri accents, " + projection)
+#show: centauri.with(kind: "deck", aspect: "16:9", projection: projection, label: "Centauri accents", date: projection + " projection", presenter: "Centauri 0.3.1", title: "Centauri accents, " + projection)
 
 #for (i, a) in ("indigo", "teal", "ember", "lime").enumerate() {
   let name = upper(a.first()) + a.slice(1)

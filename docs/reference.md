@@ -1,4 +1,4 @@
-# Centauri 0.3.0 reference
+# Centauri 0.3.1 reference
 
 This document is the complete reference for authoring with Centauri. It is written for people and for AI agents that generate Centauri documents and decks. Every name that `lib.typ` exports has its own `###` entry below; `tests/run.sh` fails when an export is undocumented or a documented name is not exported.
 
@@ -27,7 +27,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be interpreted a
 ### Import
 
 ```typ
-#import "@preview/centauri:0.3.0": *
+#import "@preview/centauri:0.3.1": *
 ```
 
 Against a checkout, import the entry file and set `--root` to a directory that contains both the document and the checkout:
@@ -775,7 +775,7 @@ Dictionary of slide sizes: `"16:9"` and `"4:3"`, each `(width, height)`.
 ### One-page brief
 
 ```typ
-#import "@preview/centauri:0.3.0": *
+#import "@preview/centauri:0.3.1": *
 #show: centauri.with(kind: "brief", accent: "teal", title: "Capstone proposal",
   header: (left: [Capstone proposal], right: [AI Builder Track]), sensitivity: "Internal")
 
@@ -796,7 +796,7 @@ The brief uses compact level 1 headings and stops the build if it runs past one 
 ### Report
 
 ```typ
-#import "@preview/centauri:0.3.0": *
+#import "@preview/centauri:0.3.1": *
 #show: centauri.with(kind: "report", title: "Quarterly review", header: (center: auto), sensitivity: "Internal")
 
 #cover(tone: "dark", title: [Quarterly review], subtitle: [Q3 2026], meta: (([Owner], [Platform team]),))[]
@@ -816,7 +816,7 @@ The brief uses compact level 1 headings and stops the build if it runs past one 
 ### Deck
 
 ```typ
-#import "@preview/centauri:0.3.0": *
+#import "@preview/centauri:0.3.1": *
 #show: centauri.with(kind: "deck", accent: "ember", label: "Class 1", date: "Week 1", presenter: "Platform team")
 
 #title-slide(title: [What AI actually is], subtitle: [Four eras and a first call.], facts: ([90 min], [Workshop]))

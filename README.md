@@ -6,7 +6,7 @@ The complete reference for every component, argument and build rule is [`docs/re
 
 ## Releases
 
-Centauri is released in lockstep with Proxima. Proxima leads: a Proxima release tags `tokens.toml`, and the Centauri release with the same version vendors that file. Centauri 0.3.0 carries the tokens from Proxima 0.3.0.
+Centauri and Proxima share major and minor versions; patch versions move independently. Proxima leads each minor: Centauri `X.Y.0` is released only after Proxima `vX.Y.0`. Only a major or minor Proxima release may change a token value in `tokens.toml`; a patch may fix its comments only. A Centauri `X.Y.*` release vendors `tokens.toml` from the latest Proxima tag `vX.Y.*`. Centauri 0.3.1 carries the tokens from Proxima 0.3.0.
 
 `src/tokens.toml` MUST NOT be edited by hand. It is written by:
 
@@ -26,7 +26,7 @@ uv run scripts/sync-tokens.py --ref v0.3.0 --check    # exits 1 when the copy di
 One import serves every kind of output.
 
 ```typ
-#import "@preview/centauri:0.3.0": *
+#import "@preview/centauri:0.3.1": *
 
 #show: centauri.with(kind: "report", accent: "teal", title: "Example report")
 
@@ -38,7 +38,7 @@ Body text.
 A deck uses the same import and the same components:
 
 ```typ
-#import "@preview/centauri:0.3.0": *
+#import "@preview/centauri:0.3.1": *
 
 #show: centauri.with(kind: "deck", aspect: "16:9", accent: "ember", label: "Class 1")
 
@@ -166,6 +166,13 @@ Output modes are selected with `--input mode=`:
 
 Code blocks are highlighted with a theme generated from the palette in force, so highlighting follows the accent and the tone.
 
+## Changes in 0.3.1
+
+- `folio` on `centauri` and `furniture` replaces the footer-centre page label with a function of the page, the total and the sensitivity in force; `auto` keeps `n/N | sensitivity`.
+- `annexes` takes `title`, `subtitle`, `word` and `numbering`. A title draws a divider page first; `word` is what a cross-reference prints ("Annex A", "Appendix I"); `numbering` sets the level 1 and lower patterns. Numbering still restarts, and no divider is drawn by default.
+- `fit-logo` scales a logo down to a height and width; `logo-line` does the same to every image and box in a line of text and centres them on its capitals.
+- The caption tests pass with pdftotext versions that split letter-spaced labels.
+
 ## Changes in 0.3.0
 
 - Carries the tokens from Proxima 0.3.0; the values are unchanged from 0.2.0.
@@ -192,11 +199,13 @@ Code blocks are highlighted with a theme generated from the palette in force, so
 
 ## Tests
 
-`tests/run.sh`, run from the repository root, MUST pass before a release. It requires `typst` and `pdftotext`, and checks that:
+`tests/run.sh`, run from the repository root, MUST pass before a release. It requires `typst`, poppler (`pdftotext`, `pdftocairo`, `pdftoppm`, `pdfinfo`) and `uv`, and checks that:
 
 - the examples and test documents build with no errors and no warnings, decks in every output mode and both projections;
 - each build rule stops the build with its own error: page limit, unresolved `todo`, lint match, low link contrast, slide overflow, a title ending in a full stop, and an unknown `h1-style`;
-- page furniture, including on page 1, and figure captions print the expected text;
+- page furniture, including on page 1, its rules and the folio, and figure captions print the expected text;
+- `annexes` restarts numbering in its patterns, prints its reference word and draws a divider only when titled;
+- `fit-logo` and `logo-line` cap logos, and `logo-line` centres an image and a text box on the line's capitals within a pixel;
 - every complete example in `README.md` and `docs/reference.md` builds;
 - `docs/reference.md` documents every name `lib.typ` exports, and no other.
 
