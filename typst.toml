@@ -1,6 +1,6 @@
 [package]
 name = "centauri"
-version = "0.3.1"
+version = "0.3.2"
 entrypoint = "lib.typ"
 authors = ["Devansh Parapalli <@DevParapalli>"]
 license = "MIT"

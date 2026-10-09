@@ -6,7 +6,7 @@ The complete reference for every component, argument and build rule is [`docs/re
 
 ## Releases
 
-Centauri and Proxima share major and minor versions; patch versions move independently. Proxima leads each minor: Centauri `X.Y.0` is released only after Proxima `vX.Y.0`. Only a major or minor Proxima release may change a token value in `tokens.toml`; a patch may fix its comments only. A Centauri `X.Y.*` release vendors `tokens.toml` from the latest Proxima tag `vX.Y.*`. Centauri 0.3.1 carries the tokens from Proxima 0.3.0.
+Centauri and Proxima share major and minor versions; patch versions move independently. Proxima leads each minor: Centauri `X.Y.0` is released only after Proxima `vX.Y.0`. Only a major or minor Proxima release may change a token value in `tokens.toml`; a patch may fix its comments only. A Centauri `X.Y.*` release vendors `tokens.toml` from the latest Proxima tag `vX.Y.*`. Centauri 0.3.2 carries the tokens from Proxima 0.3.0.
 
 `src/tokens.toml` MUST NOT be edited by hand. It is written by:
 
@@ -29,7 +29,7 @@ uv run scripts/sync-tokens.py --check                 # exits 1 when the copy di
 One import serves every kind of output.
 
 ```typ
-#import "@preview/centauri:0.3.1": *
+#import "@preview/centauri:0.3.2": *
 
 #show: centauri.with(kind: "report", accent: "teal", title: "Example report")
 
@@ -41,7 +41,7 @@ Body text.
 A deck uses the same import and the same components:
 
 ```typ
-#import "@preview/centauri:0.3.1": *
+#import "@preview/centauri:0.3.2": *
 
 #show: centauri.with(kind: "deck", aspect: "16:9", accent: "ember", label: "Class 1")
 
@@ -168,6 +168,10 @@ Output modes are selected with `--input mode=`:
 `notes[...]` carries the speaker script. It appears in handouts, and on the slides only with `--input notes=true`.
 
 Code blocks are highlighted with a theme generated from the palette in force, so highlighting follows the accent and the tone.
+
+## Changes in 0.3.2
+
+- `auto` in the footer's left or right slot prints the folio, as it does in the centre, so a design can move the page label to a corner. Defaults are unchanged.
 
 ## Changes in 0.3.1
 
