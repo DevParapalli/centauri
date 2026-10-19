@@ -174,6 +174,16 @@ Output modes are selected with `--input mode=`:
 
 Code blocks are highlighted with a theme generated from the palette in force, so highlighting follows the accent and the tone.
 
+## Brand packages
+
+A brand package is a Typst package that imports Centauri, overrides its theme and exports the result. [`examples/lol/`](examples/lol/) is a complete one for Lafayette O'Reilly Logistics, an invented company:
+
+- `lib.typ` builds `lol-theme` with `extend(centauri-theme, (...))`: LOL's colours, faces, heading functions, quotation style, cover backdrop, two furniture arrangements, its five data classes as sensitivity levels, and its words. It exports the theme, `lol = centauri.with(theme: lol-theme)`, the drawn logo and the furniture `presets`, alongside every Centauri name.
+- `report.typ` is a document written with it.
+- `run.py` is the brand's test runner: it runs Centauri's suite, then the brand's own checks with `tests/checks.py`.
+
+A brand repository vendors Centauri as a git submodule (`vendor/centauri`) for its tests, copies `run.py`, and points `CENTAURI`, `ROOT` and `FONTS` at the submodule, the repository and its fonts. Documents written with the brand need no tests of their own.
+
 ## Changes in 0.4.0
 
 Centauri becomes an engine with its own theme, so brand packages can restyle it without wrapping it. Documents written for 0.3 need the changes below.
