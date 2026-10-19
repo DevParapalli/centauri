@@ -6,18 +6,18 @@ The complete reference for every component, argument and build rule is [`docs/re
 
 ## Releases
 
-Centauri and Proxima share major and minor versions; patch versions move independently. Proxima leads each minor: Centauri `X.Y.0` is released only after Proxima `vX.Y.0`. Only a major or minor Proxima release may change a token value in `tokens.toml`; a patch may fix its comments only. A Centauri `X.Y.*` release vendors `tokens.toml` from the latest Proxima tag `vX.Y.*`. Centauri 0.3.2 carries the tokens from Proxima 0.3.0.
+Centauri and Proxima release separately. Centauri vendors `tokens.toml` from Proxima's latest release tag, and a Centauri release whose vendored tokens change is a minor release at least. Centauri 0.4.0 carries the tokens from Proxima 0.3.0.
 
 `src/tokens.toml` MUST NOT be edited by hand. It is written by:
 
 ```sh
-uv run scripts/sync-tokens.py                         # latest Proxima vX.Y.* for typst.toml's X.Y
-uv run scripts/sync-tokens.py --ref 0.3               # the same, X.Y given; must match typst.toml
+uv run scripts/sync-tokens.py                         # latest Proxima release tag
+uv run scripts/sync-tokens.py --ref v0.3.0            # one tag
 uv run scripts/sync-tokens.py --from ../proxima/tokens.toml
-uv run scripts/sync-tokens.py --check                 # exits 1 when the copy differs
+uv run scripts/sync-tokens.py --check                 # exits 1 when the copy differs from the latest tag
 ```
 
-`--ref` takes `X.Y` or `vX.Y` and finds the tag with `git ls-remote`, so `git` must be installed.
+The script finds tags with `git ls-remote`, so `git` must be installed. `--check` failing after a new Proxima release is the signal to sync and bump the minor.
 
 ## Requirements
 

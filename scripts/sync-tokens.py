@@ -9,10 +9,10 @@ Centauri is published as a self-contained Typst package, so it carries its own
 copy of the shared tokens. This script is the only way that copy changes.
 
 Usage:
-    uv run scripts/sync-tokens.py                       # latest Proxima vX.Y.* for typst.toml's X.Y
-    uv run scripts/sync-tokens.py --ref 0.3             # same, X.Y given explicitly
+    uv run scripts/sync-tokens.py                       # latest Proxima release tag
+    uv run scripts/sync-tokens.py --ref v0.3.0          # one tag
     uv run scripts/sync-tokens.py --from ../proxima/tokens.toml
-    uv run scripts/sync-tokens.py --check               # exit 1 if the copy differs
+    uv run scripts/sync-tokens.py --check               # exit 1 if the copy differs from the latest tag
 """
 
 from __future__ import annotations
@@ -28,17 +28,16 @@ from pathlib import Path
 REPO = "DevParapalli/proxima"
 ROOT = Path(__file__).resolve().parent.parent
 DEST = ROOT / "src" / "tokens.toml"
-PACKAGE = ROOT / "typst.toml"
 REQUIRED = ("version", "scale", "neutral", "state", "chart", "accent")
-XY = re.compile(r"v?(\d+)\.(\d+)")
+TAG = re.compile(r"v?(\d+)\.(\d+)\.(\d+)")
 
 
-def latest_tag(ls_remote: str, xy: str) -> str | None:
-    """Highest vX.Y.Z tag in `git ls-remote --tags` output, or None."""
-    tag = re.compile(rf"refs/tags/(v{re.escape(xy)}\.(\d+))")
+def latest_tag(ls_remote: str) -> str | None:
+    """Highest vX.Y.Z release tag in `git ls-remote --tags` output, or None."""
+    tag = re.compile(r"refs/tags/(v(\d+)\.(\d+)\.(\d+))")
     found = [m for line in ls_remote.splitlines() if (m := tag.fullmatch(line.split("\t")[-1]))]
-    # Numeric, so v0.3.10 outranks v0.3.9.
-    return max(found, key=lambda m: int(m[2]))[1] if found else None
+    # Numeric, so v0.3.10 outranks v0.3.9 and v0.10.0 outranks v0.9.9.
+    return max(found, key=lambda m: (int(m[2]), int(m[3]), int(m[4])))[1] if found else None
 
 
 def remote_tags() -> str:
@@ -61,7 +60,7 @@ def fetch(ref: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     source = parser.add_mutually_exclusive_group()
-    source.add_argument("--ref", help="major.minor (0.3 or v0.3); defaults to typst.toml's")
+    source.add_argument("--ref", help="a release tag, such as v0.3.0; defaults to the latest")
     source.add_argument("--from", dest="path", type=Path, help="local tokens.toml")
     parser.add_argument("--check", action="store_true", help="compare only, do not write")
     args = parser.parse_args()
@@ -70,27 +69,24 @@ def main() -> int:
         text = args.path.read_text(encoding="utf-8")
         origin = str(args.path)
     else:
-        package = tomllib.loads(PACKAGE.read_text(encoding="utf-8"))["package"]["version"]
-        own = ".".join(package.split(".")[:2])
-        if args.ref is None:
-            xy = own
-        elif m := XY.fullmatch(args.ref):
-            xy = f"{m[1]}.{m[2]}"
-        else:
-            print(f"error: --ref takes major.minor, such as 0.3 or v0.3, not {args.ref!r}", file=sys.stderr)
-            return 2
-        if xy != own:
-            print(f"error: --ref {xy} does not match typst.toml version {package}", file=sys.stderr)
+        if args.ref is not None and not (m := TAG.fullmatch(args.ref)):
+            print(f"error: --ref takes a release tag, such as v0.3.0, not {args.ref!r}", file=sys.stderr)
             return 2
         try:
             tags = remote_tags()
         except FileNotFoundError:
             print("error: git not installed", file=sys.stderr)
             return 2
-        tag = latest_tag(tags, xy)
-        if tag is None:
-            print(f"error: {REPO} has no v{xy}.* tag", file=sys.stderr)
-            return 2
+        if args.ref is None:
+            tag = latest_tag(tags)
+            if tag is None:
+                print(f"error: {REPO} has no release tag", file=sys.stderr)
+                return 2
+        else:
+            tag = f"v{m[1]}.{m[2]}.{m[3]}"
+            if f"refs/tags/{tag}" not in tags.split():
+                print(f"error: {REPO} has no tag {tag}", file=sys.stderr)
+                return 2
         text = fetch(tag)
         origin = f"{REPO}@{tag}"
 

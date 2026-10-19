@@ -15,10 +15,11 @@ spec = importlib.util.spec_from_file_location("sync_tokens", SCRIPT)
 sync = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync)
 
-LS_REMOTE = "\n".join(
-    f"{'0' * 40}\trefs/tags/{t}"
-    for t in ("v0.2.4", "v0.3.0", "v0.3.9", "v0.3.10", "v0.3.11-rc1", "v0.30.5", "v1.3.2")
-)
+
+def ls_remote(*tags: str) -> str:
+    return "\n".join(f"{'0' * 40}\trefs/tags/{t}" for t in tags)
+
+
 fail = 0
 
 
@@ -31,19 +32,13 @@ def check(name: str, got: object, want: object) -> None:
         fail = 1
 
 
-check("picks the highest patch numerically", sync.latest_tag(LS_REMOTE, "0.3"), "v0.3.10")
-check("ignores other minors and majors", sync.latest_tag(LS_REMOTE, "0.2"), "v0.2.4")
-check("returns None without a match", sync.latest_tag(LS_REMOTE, "0.4"), None)
-check("does not read 0.30 as 0.3", sync.latest_tag(LS_REMOTE, "0.30"), "v0.30.5")
+check("picks the highest patch numerically", sync.latest_tag(ls_remote("v0.3.9", "v0.3.10", "v0.2.4")), "v0.3.10")
+check("picks the highest minor numerically", sync.latest_tag(ls_remote("v0.9.9", "v0.10.0")), "v0.10.0")
+check("picks the highest major", sync.latest_tag(ls_remote("v0.30.5", "v1.0.0", "v0.3.0")), "v1.0.0")
+check("ignores pre-release tags", sync.latest_tag(ls_remote("v0.3.0", "v0.4.0-rc1")), "v0.3.0")
+check("returns None without a release tag", sync.latest_tag(ls_remote("draft", "v0.4")), None)
 
-own = sync.tomllib.loads(sync.PACKAGE.read_text(encoding="utf-8"))["package"]["version"]
-major, minor = own.split(".")[:2]
-for ref, why in (
-    (f"{major}.{minor}.0", "a full version"),
-    ("latest", "a non-version"),
-    (f"{major}.{int(minor) + 1}", "a minor other than typst.toml's"),
-    (f"v{int(major) + 1}.{minor}", "a major other than typst.toml's"),
-):
+for ref, why in (("latest", "a non-version"), ("0.3", "a major.minor"), ("v0.3.0-rc1", "a pre-release")):
     run = subprocess.run(
         [sys.executable, str(SCRIPT), "--ref", ref, "--check"], capture_output=True, text=True, timeout=30
     )

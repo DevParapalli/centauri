@@ -1,9 +1,9 @@
-# Vendored by scripts/sync-tokens.py from ../proxima/tokens.toml.
+# Vendored by scripts/sync-tokens.py from DevParapalli/proxima@v0.3.0.
 # Do not edit. Change tokens.toml in the proxima repository and sync again.
 
 # Proxima–Centauri shared tokens.
 #
-# Canonical copy: https://github.com/DevParapalli/proxima/blob/master/tokens.toml
+# Canonical copy: https://github.com/DevParapalli/proxima/blob/main/tokens.toml
 # Proxima regenerates its CSS token blocks from this file with scripts/tokens.py.
 # Centauri vendors a copy with scripts/sync-tokens.py; do not edit that copy.
 #
