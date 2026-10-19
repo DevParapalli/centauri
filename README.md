@@ -6,7 +6,7 @@ The complete reference for every component, argument and build rule is [`docs/re
 
 ## Releases
 
-Centauri and Proxima release separately. Centauri vendors `tokens.toml` from Proxima's latest release tag, and a Centauri release whose vendored tokens change is a minor release at least. Centauri 0.4.0 carries the tokens from Proxima 0.3.0.
+Centauri and Proxima release separately. Centauri vendors `tokens.toml` from Proxima's latest release tag, and a Centauri release whose vendored tokens change is a minor release at least. Centauri 0.4.1 carries the tokens from Proxima 0.3.0.
 
 `src/tokens.toml` MUST NOT be edited by hand. It is written by:
 
@@ -29,7 +29,7 @@ The script finds tags with `git ls-remote`, so `git` must be installed. `--check
 One import serves every kind of output.
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 
 #show: centauri.with(accent: "teal", title: "Example report")
 
@@ -41,7 +41,7 @@ Body text.
 A deck uses the same import and the same components:
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 
 #show: centauri.with(kind: "deck", aspect: "16:9", accent: "ember", label: "Class 1")
 
@@ -65,7 +65,7 @@ Before the package is published, or to work against a checkout, import the entry
 A theme is one dictionary: colours (light and dark), faces, type scale, strokes, page geometry, a function for each heading level, functions for quotations, code, captions, footnotes and cover backdrops, the starting page furniture, the sensitivity levels, and every fixed word. `centauri-theme` is Centauri's own. A brand overrides it with `extend` and passes the result:
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 
 #let brand = extend(centauri-theme, (
   fonts: (heading: ("Newsreader 16pt",)),
@@ -184,6 +184,11 @@ A brand package is a Typst package that imports Centauri, overrides its theme an
 
 A brand repository vendors Centauri as a git submodule (`vendor/centauri`) for its tests, copies `run.py`, and points `CENTAURI`, `ROOT` and `FONTS` at the submodule, the repository and its fonts. Documents written with the brand need no tests of their own.
 
+## Changes in 0.4.1
+
+- `cover(margin:, layout: "bare")`: a brand that arranges its own cover passes its layout as the body and its own page margins, and still gets Centauri's tone, accent, ground, backdrop and furniture.
+- `tests/checks.py` gains `images`, `shadings`, `opacities`, `fills`, `hex_rgb`, `near_colour`, `rmse` (with an optional blur) and `bbox`, for brand runners that check artwork, colours and gradients.
+
 ## Changes in 0.4.0
 
 Centauri becomes an engine with its own theme, so brand packages can restyle it without wrapping it. Documents written for 0.3 need the changes below.
@@ -250,7 +255,7 @@ Centauri becomes an engine with its own theme, so brand packages can restyle it 
 - every complete example in `README.md` and `docs/reference.md` builds;
 - `docs/reference.md` documents every name `lib.typ` exports, and no other.
 
-`tests/checks.py` holds the build and PDF checks the suite uses. The repository is open: a brand package that wants the same checks downloads `tests/` from it, or vendors Centauri as a git submodule, and imports `checks.py` from its own runner.
+`tests/checks.py` holds the build and PDF checks the suite uses: building and rejecting, text and its positions, strokes, fills, images, gradients, opacity, embedded fonts, renders, blurred image comparison and colour bounding boxes. The repository is open: a brand package that wants the same checks downloads `tests/` from it, or vendors Centauri as a git submodule, and imports `checks.py` from its own runner.
 
 ## Licence
 

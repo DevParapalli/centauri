@@ -277,7 +277,9 @@
 /// Full-page cover. Its place in the document makes it a front cover, a divider or a back
 /// cover. `accent` overrides the document accent for this page only. `backdrop` is drawn
 /// behind the page: auto for the theme's, none, content (an image, say), or a function of no
-/// arguments called in context with this page's tone.
+/// arguments called in context with this page's tone. `margin` sets this page's margins (auto
+/// keeps the document's). `layout: "bare"` sets the body from the top of the page area as it
+/// is, for a brand that arranges its own cover; title, subtitle, meta and heading are then unused.
 #let cover(
   tone: "light",
   accent: auto,
@@ -287,11 +289,16 @@
   heading: false,
   furniture: true,
   backdrop: auto,
+  margin: auto,
+  layout: "standard",
   ..rest,
 ) = {
   assert(rest.named().len() == 0, message: "centauri: cover has no parameter " + rest.named().keys().join(", "))
   let body = rest.pos().at(0, default: none)
   assert(tone in ("light", "dark"), message: "centauri: cover tone must be light or dark")
+  assert(layout in ("standard", "bare"), message: "centauri: cover layout must be standard or bare")
+  assert(layout == "standard" or (title == none and subtitle == none and meta.len() == 0 and not heading),
+    message: "centauri: a bare cover takes its content as the body; title, subtitle, meta and heading are unused")
   context {
     let t = theme-now()
     let doc-accent = _accent.get()
@@ -302,37 +309,42 @@
     let w = t.type.weights
     let set-tone = { tone-state.update(tone); _accent.update(a) }
     let bd = if backdrop == auto { t.elements.backdrop } else { backdrop }
+    let standard = {
+      show std.heading: it => text(font: t.fonts.heading, size: s.display, weight: w.h1, tracking: -0.015em, fill: q.ink-hi, it.body)
+      v(1fr)
+      if title != none {
+        set par(leading: 0.4em)
+        if heading { std.heading(level: 1, title) } else {
+          text(font: t.fonts.heading, size: s.display, weight: w.h1, tracking: -0.015em, fill: q.ink-hi, title)
+        }
+      }
+      if subtitle != none {
+        v(0.9em)
+        text(size: s.h4, fill: q.ink-mid, subtitle)
+      }
+      if body != none {
+        v(1.2em)
+        block(width: 78%, body)
+      }
+      v(2fr)
+      if meta.len() > 0 {
+        line(length: 100%, stroke: t.strokes.hairline + q.hairline)
+        _kv(q, t, meta)
+      }
+    }
     page(
       fill: q.cover,
       // The background and header are laid out before the body, so each sets the tone itself.
       background: { set-tone; if type(bd) == function { context bd() } else { bd } },
       footer: none,
       header: if furniture { set-tone; _header() } else { none },
+      // Passed only when set: page(margin: auto) would mean Typst's default, not the document's.
+      ..if margin != auto { (margin: margin) },
     )[
       #set-tone
       #set text(fill: q.ink-mid)
       #show link: set text(fill: q.link)
-      #show std.heading: it => text(font: t.fonts.heading, size: s.display, weight: w.h1, tracking: -0.015em, fill: q.ink-hi, it.body)
-      #v(1fr)
-      #if title != none {
-        set par(leading: 0.4em)
-        if heading { std.heading(level: 1, title) } else {
-          text(font: t.fonts.heading, size: s.display, weight: w.h1, tracking: -0.015em, fill: q.ink-hi, title)
-        }
-      }
-      #if subtitle != none {
-        v(0.9em)
-        text(size: s.h4, fill: q.ink-mid, subtitle)
-      }
-      #if body != none {
-        v(1.2em)
-        block(width: 78%, body)
-      }
-      #v(2fr)
-      #if meta.len() > 0 {
-        line(length: 100%, stroke: t.strokes.hairline + q.hairline)
-        _kv(q, t, meta)
-      }
+      #if layout == "bare" { body } else { standard }
       #tone-state.update("light")
       #_accent.update(doc-accent)
     ]

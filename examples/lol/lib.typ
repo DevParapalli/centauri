@@ -1,6 +1,6 @@
 // Lafayette O'Reilly Logistics (LOL): an invented company from the AI training track, used
 // here as a complete brand package on Centauri. It is the example to copy and the fixture
-// that `examples/lol/run.py` tests. A real brand package imports "@preview/centauri:0.4.0"
+// that `examples/lol/run.py` tests. A real brand package imports "@preview/centauri:0.4.1"
 // instead of the checkout.
 
 #import "/lib.typ": *

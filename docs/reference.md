@@ -1,4 +1,4 @@
-# Centauri 0.4.0 reference
+# Centauri 0.4.1 reference
 
 This document is the complete reference for authoring with Centauri. It is written for people and for AI agents that generate Centauri documents and decks, and for anyone building a brand package on Centauri. Every name that `lib.typ` exports has its own `###` entry below; `tests/run.py` fails when an export is undocumented or a documented name is not exported.
 
@@ -27,7 +27,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be interpreted a
 ### Import
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 ```
 
 Against a checkout, import the entry file and set `--root` to a directory that contains both the document and the checkout:
@@ -182,7 +182,7 @@ Sets `body` in another accent, then returns to the accent that was in force.
 
 ### `cover`
 
-`cover(tone: "light", accent: auto, title: none, subtitle: none, meta: (), heading: false, furniture: true, backdrop: auto)[body]`
+`cover(tone: "light", accent: auto, title: none, subtitle: none, meta: (), heading: false, furniture: true, backdrop: auto, margin: auto, layout: "standard")[body]`
 
 A full page. Where it is placed decides its role: a front cover, a section or annex divider, or a back cover.
 
@@ -196,7 +196,9 @@ A full page. Where it is placed decides its role: a front cover, a section or an
 | `heading` | `true` makes the title a numbered level 1 heading, listed in the outline. |
 | `furniture` | `false` removes the header. Covers never carry a footer. |
 | `backdrop` | Drawn behind the page. `auto` is the theme's `backdrop` element (Centauri's is an accent bloom); `none` leaves the flat cover ground; content such as `image("wave.png", width: 100%)` is placed at the top left; a function of no arguments is called in context with the cover's tone in force. |
-| `body` | Optional content beneath the subtitle, at 78% width. |
+| `margin` | This page's margins, as Typst's `page(margin:)` takes them; `auto` keeps the document's. |
+| `layout` | `"standard"` arranges title, subtitle, body and meta as above. `"bare"` sets the body as it is from the top of the page area, for a brand that arranges its own cover; `title`, `subtitle`, `meta` and `heading` then stop the build. |
+| `body` | Optional content beneath the subtitle, at 78% width; with `layout: "bare"`, the whole page content. |
 
 Passing an unknown named argument stops the build.
 
@@ -666,7 +668,7 @@ Speaker notes for the slide it follows. Printed beneath the slide in `handout` m
 A theme is one dictionary: colours, faces, sizes, strokes, page geometry, the heading and element functions, the starting furniture, the sensitivity levels and the words. Centauri supplies the rules (stages, gates, numbering, furniture state) and its own theme, [`centauri-theme`](#centauri-theme). A brand package overrides that theme with [`extend`](#extend) and passes the result as `theme:`:
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 #let brand = extend(centauri-theme, (
   fonts: (heading: ("Newsreader 16pt",)),
   sensitivity: (default: "Internal", levels: ("Public", "Internal", "Confidential")),
@@ -711,7 +713,7 @@ Every `link` MUST reach 4.5:1 on its `paper` and `cover`, in every accent; the b
 The function receives the element and returns content. It is called in context, so it reads the theme with [`theme-now`](#theme-now) directly; [`heading-number`](#heading-number) and [`at-page-top`](#at-page-top) give what a heading needs beyond the theme.
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 #let h1(it) = {
   let t = theme-now()
   block(above: 1.6em, below: 1em, sticky: true, text(font: t.fonts.heading, size: t.sizes.h1, fill: t.colors.ink-hi)[
@@ -825,7 +827,7 @@ Dictionary of slide sizes: `"16:9"` and `"4:3"`, each `(width, height)`.
 ### One-page brief
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 #show: centauri.with(accent: "teal", title: "Capstone proposal", theme: extend(centauri-theme, (
   furniture: (header: (left: [Capstone proposal], right: [AI Builder Track])),
   sensitivity: (default: "Internal"),
@@ -846,7 +848,7 @@ One paragraph.
 ### Report
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 #show: centauri.with(title: "Quarterly review", theme: extend(centauri-theme, (
   furniture: (header: (center: current-section)),
   sensitivity: (default: "Internal"),
@@ -874,7 +876,7 @@ One paragraph.
 A letter is a document: the theme's furniture carries the letterhead, and the body is set with the components.
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 #show: centauri.with(stage: "review", numbering: none, theme: extend(centauri-theme, (
   furniture: (header: (left: [*Platform team* · team\@example.com]), footer: (center: none)),
 )))
@@ -892,7 +894,7 @@ Yours sincerely,
 ### Deck
 
 ```typ
-#import "@preview/centauri:0.4.0": *
+#import "@preview/centauri:0.4.1": *
 #show: centauri.with(kind: "deck", accent: "ember", label: "Class 1", date: "Week 1", presenter: "Platform team")
 
 #title-slide(title: [What AI actually is], subtitle: [Four eras and a first call.], facts: ([90 min], [Workshop]))

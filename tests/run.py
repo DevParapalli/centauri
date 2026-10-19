@@ -140,6 +140,33 @@ def covers(s: checks.Suite) -> None:
     pdf = s.pdf("tests/backdrop.typ")
     s.report("backdrop function sees the cover's tone", "BACKDROP-TONE-dark" in text(pdf, 3))
 
+    # A bare cover sets its body from the top left of its own 1cm margins.
+    pdf = s.pdf("tests/cover-bare.typ")
+    at = [(round(x / checks.CM, 1), round((checks.page_height(pdf, 1) - y) / checks.CM, 1))
+          for t, x, y in words(pdf, 1) if t == "BARE-TOP"]
+    s.report("bare cover body at its own margins", len(at) == 1 and at[0][0] == 1.0 and 1.0 < at[0][1] < 1.5, repr(at))
+    s.rejects("tests/cover-bare-title.typ", "a bare cover takes its content as the body")
+
+
+def pdf_helpers(s: checks.Suite) -> None:
+    # The helpers brand runners use, on a fixture with a gradient, a link, an opacity and an image.
+    pdf = s.pdf("tests/pdf-features.typ")
+    s.report("shadings: the bloom is a radial gradient on the cover only",
+             checks.shadings(pdf, 1) == [3] and checks.shadings(pdf, 2) == [])
+    s.report("images: an image backdrop counts, a page without one has none",
+             checks.images(pdf, 3) >= 1 and checks.images(pdf, 2) == 0)
+    s.report("opacities: a 40% SVG", checks.opacities(pdf, 2) == {0.4} and checks.opacities(pdf, 1) == set())
+    hexes = [t.removeprefix("LINK-HEX-") for t in text(pdf, 2).split() if t.startswith("LINK-HEX-")]
+    link = checks.hex_rgb(hexes[0]) if hexes else None
+    s.report("fills: the link is drawn in the theme's link colour",
+             link is not None and any(checks.near_colour(f, link) for f in checks.fills(pdf, 2)), repr(hexes))
+    flat, bloom = s.png("tests/backdrop.typ", 1, 20), s.png("tests/pdf-features.typ", 1, 20)
+    s.report("rmse: an image matches itself", checks.rmse(flat, flat, blur=2) == 0)
+    s.report("rmse: a bloom differs from a flat page", checks.rmse(bloom, flat, blur=2) > 0.01)
+    block = s.png("tests/backdrop.typ", 2, 20)
+    s.report("bbox: finds the red block at the top left", checks.bbox(block, checks.is_red)[:2] == (0, 0),
+             repr(checks.bbox(block, checks.is_red)))
+
 
 def remarks(s: checks.Suite) -> None:
     draft = s.pdf("tests/warn.typ")
@@ -194,7 +221,7 @@ def sync_tokens(s: checks.Suite) -> None:
 
 def main() -> int:
     s = checks.Suite(ROOT, ROOT / "fonts")
-    for group in (documents, decks, labels, furniture, headings, covers, remarks, logos, docs, sync_tokens):
+    for group in (documents, decks, labels, furniture, headings, covers, pdf_helpers, remarks, logos, docs, sync_tokens):
         group(s)
     return s.done()
 

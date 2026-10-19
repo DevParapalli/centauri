@@ -28,14 +28,14 @@
   title: [Centauri showcase],
   subtitle: [Print and slide design system on Proxima's shared tokens.],
   meta: (
-    ([Version], [0.4.0, with the tokens of Proxima 0.3.0]),
+    ([Version], [0.4.1, with the tokens of Proxima 0.3.0]),
     ([Stage], [draft by default; override with `--input stage=review` or `final`]),
     ([Fonts], [Atkinson Hyperlegible Next and Mono, Newsreader (OFL-1.1)]),
     ([Licence], [MIT]),
     ([Compiler], [Typst 0.15]),
   ),
 )[
-  This document exercises every component in Centauri 0.4.0. Each section states what the component does, then renders it.
+  This document exercises every component in Centauri 0.4.1. Each section states what the component does, then renders it.
 ]
 
 #outline(depth: 2)

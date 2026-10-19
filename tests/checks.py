@@ -14,7 +14,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageFilter
 from pypdf import PdfReader
 from pypdf.generic import ContentStream
 
@@ -172,6 +172,108 @@ def page_height(pdf: Path, page: int) -> float:
 
 
 CM = 72 / 2.54  # points per centimetre
+
+
+def _resources(res: object, seen: set[int] | None = None):
+    """Every resource dictionary reachable from `res`, through form XObjects and patterns."""
+    seen = set() if seen is None else seen
+    if res is None:
+        return
+    res = res.get_object()
+    if id(res) in seen:
+        return
+    seen.add(id(res))
+    yield res
+    for kind in ("/XObject", "/Pattern"):
+        for ref in (res.get(kind) or {}).values():
+            obj = ref.get_object()
+            if "/Resources" in obj:
+                yield from _resources(obj["/Resources"], seen)
+
+
+def _page_resources(pdf: Path, page: int | None):
+    reader = PdfReader(pdf)
+    chosen = reader.pages if page is None else [reader.pages[page - 1]]
+    for p in chosen:
+        yield from _resources(p.get("/Resources"))
+
+
+def images(pdf: Path, page: int) -> int:
+    """Number of image XObjects a page uses, including those inside its forms."""
+    return sum(1 for res in _page_resources(pdf, page) for ref in (res.get("/XObject") or {}).values()
+               if ref.get_object().get("/Subtype") == "/Image")
+
+
+def shadings(pdf: Path, page: int | None = None) -> list[int]:
+    """ShadingType of every gradient on a page or in the document: 2 is linear, 3 radial."""
+    found: list[int] = []
+    for res in _page_resources(pdf, page):
+        for ref in (res.get("/Shading") or {}).values():
+            found.append(int(ref.get_object()["/ShadingType"]))
+        for ref in (res.get("/Pattern") or {}).values():
+            shading = ref.get_object().get("/Shading")
+            if shading is not None:
+                found.append(int(shading.get_object()["/ShadingType"]))
+    return found
+
+
+def opacities(pdf: Path, page: int | None = None) -> set[float]:
+    """Stroke and fill opacities (CA, ca) set by graphics states, below 1 only."""
+    found: set[float] = set()
+    for res in _page_resources(pdf, page):
+        for ref in (res.get("/ExtGState") or {}).values():
+            gs = ref.get_object()
+            for key in ("/CA", "/ca"):
+                if key in gs and float(gs[key]) < 1:
+                    found.add(round(float(gs[key]), 4))
+    return found
+
+
+def fills(pdf: Path, page: int) -> list[tuple[float, ...]]:
+    """Fill colour components set on a page's own content stream, in order."""
+    reader = PdfReader(pdf)
+    ops = ContentStream(reader.pages[page - 1].get_contents(), reader).operations
+    return [tuple(float(a) for a in args if not str(a).startswith("/"))
+            for args, op in ops if op in (b"sc", b"scn", b"rg", b"g")]
+
+
+def hex_rgb(hex_colour: str) -> tuple[float, float, float]:
+    """"#4e84c4" as PDF components in 0 to 1, for comparing with `fills`."""
+    h = hex_colour.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))  # type: ignore[return-value]
+
+
+def near_colour(a: tuple[float, ...], b: tuple[float, ...], tol: float = 0.002) -> bool:
+    return len(a) == len(b) and all(abs(x - y) <= tol for x, y in zip(a, b))
+
+
+def rmse(a: Image.Image, b: Image.Image, blur: float = 0) -> float:
+    """Root mean square difference of two same-sized images, 0 to 1. Blurring both first
+    compares shapes rather than how thin lines anti-alias."""
+    if a.size != b.size:
+        raise ValueError(f"images differ in size: {a.size} and {b.size}")
+    if blur:
+        a, b = a.filter(ImageFilter.GaussianBlur(blur)), b.filter(ImageFilter.GaussianBlur(blur))
+    diff = ImageChops.difference(a.convert("RGB"), b.convert("RGB")).convert("L")
+    hist = diff.histogram()
+    total = sum(n * (v * v) for v, n in enumerate(hist))
+    return (total / (a.size[0] * a.size[1])) ** 0.5 / 255
+
+
+def bbox(img: Image.Image, keep, region: tuple[int, int, int, int] | None = None) -> tuple[int, int, int, int] | None:
+    """(x, y, width, height) of the pixels where `keep(r, g, b)` holds, within `region`
+    (x, y, width, height in pixels) if given; x and y are relative to the region."""
+    if region is not None:
+        x, y, w, h = region
+        img = img.crop((x, y, x + w, y + h))
+    mask = Image.new("L", img.size)
+    mask.putdata([255 if keep(*px) else 0 for px in img.convert("RGB").getdata()])
+    box = mask.getbbox()
+    return None if box is None else (box[0], box[1], box[2] - box[0], box[3] - box[1])
+
+
+def is_red(r: int, g: int, b: int) -> bool:
+    return r > 200 and g < 60 and b < 60
 
 
 def fonts(pdf: Path) -> set[str]:
