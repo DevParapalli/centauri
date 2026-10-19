@@ -46,6 +46,9 @@ def main() -> int:
     # Masthead: the class in the header, changed by `furniture` from the next page.
     s.report("masthead class on page 3", "LOL Internal" in text(pdf, 3))
     s.report("masthead class changes on page 4", "LOL Confidential" in text(pdf, 4))
+    # LOL's page distances place the masthead rule, the topmost stroke, 1.6cm from the top.
+    from_top = [round((checks.page_height(pdf, 3) - y) / checks.CM, 2) for _, _, y in checks.strokes(pdf, 3)]
+    s.report("masthead rule at LOL's header-line", min(from_top, default=None) == 1.6, repr(from_top))
     # Ledger: logo, class and page count in the footer, from the page after the switch.
     last = text(pdf, 6)
     s.report("ledger footer on page 6", "LOL Confidential" in last and "Page 6 of 6" in last, repr(last[-80:]))

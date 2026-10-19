@@ -241,7 +241,7 @@ Centauri becomes an engine with its own theme, so brand packages can restyle it 
 
 - the examples and test documents build with no errors and no warnings, decks in every output mode and both projections;
 - each build rule stops the build with its own error: unresolved `todo`, lint match, low link contrast, slide overflow, a title ending in a full stop, an unknown or missing theme key, a sensitivity outside the theme's levels, an accent the theme lacks, and an unknown `kind`;
-- page furniture, including on page 1, its rules, the folio and the sensitivity in the header, and figure captions print the expected text, and a `furniture` change reaches the next page;
+- page furniture, including on page 1, its rules, the folio and the sensitivity in the header, and figure captions print the expected text, a `furniture` change reaches the next page, and the rules sit at the theme's `header-line` and `footer-line`;
 - theme heading functions draw the headings, with their numbers;
 - `annexes` restarts numbering in its patterns and prints its reference word, the caller's or the theme's;
 - a cover draws no backdrop, content, or a function that sees the cover's tone;

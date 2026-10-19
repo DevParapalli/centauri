@@ -137,23 +137,41 @@ def page_width(pdf: Path, page: int) -> float:
     return float(PdfReader(pdf).pages[page - 1].mediabox.width)
 
 
-def strokes(pdf: Path, page: int) -> list[tuple[float, tuple[float, ...]]]:
-    """(line width, stroke colour components) for every stroked path on a page."""
+def _times(m: list[float], n: list[float]) -> list[float]:
+    """PDF matrix product m × n, as cm composes onto the current transformation."""
+    a, b, c, d, e, f = m
+    a2, b2, c2, d2, e2, f2 = n
+    return [a * a2 + b * c2, a * b2 + b * d2, c * a2 + d * c2, c * b2 + d * d2,
+            e * a2 + f * c2 + e2, e * b2 + f * d2 + f2]
+
+
+def strokes(pdf: Path, page: int) -> list[tuple[float, tuple[float, ...], float]]:
+    """(line width, stroke colour components, y of the path's origin in points from the bottom)
+    for every stroked path on a page."""
     reader = PdfReader(pdf)
     ops = ContentStream(reader.pages[page - 1].get_contents(), reader).operations
-    width, colour, stack, out = 1.0, (0.0,), [], []
+    width, colour, ctm, stack, out = 1.0, (0.0,), [1.0, 0.0, 0.0, 1.0, 0.0, 0.0], [], []
     for args, op in ops:
         if op == b"q":
-            stack.append((width, colour))
+            stack.append((width, colour, ctm))
         elif op == b"Q" and stack:
-            width, colour = stack.pop()
+            width, colour, ctm = stack.pop()
+        elif op == b"cm":
+            ctm = _times([float(a) for a in args], ctm)
         elif op == b"w":
             width = float(args[0])
         elif op in (b"SC", b"SCN", b"RG", b"G"):
             colour = tuple(float(a) for a in args if not str(a).startswith("/"))
         elif op in (b"S", b"s", b"B", b"b", b"B*", b"b*"):
-            out.append((width, colour))
+            out.append((width, colour, ctm[5]))
     return out
+
+
+def page_height(pdf: Path, page: int) -> float:
+    return float(PdfReader(pdf).pages[page - 1].mediabox.height)
+
+
+CM = 72 / 2.54  # points per centimetre
 
 
 def fonts(pdf: Path) -> set[str]:

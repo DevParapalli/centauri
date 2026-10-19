@@ -73,10 +73,17 @@ def furniture(s: checks.Suite) -> None:
     pdf = s.pdf("tests/furniture-rules.typ")
     for page, want_hair, want_red in ((1, 2, 0), (2, 0, 1), (3, 0, 1)):
         found = strokes(pdf, page)
-        hair = sum(1 for w, _ in found if w == 0.5)
-        red = sum(1 for w, c in found if c == (1.0, 0.0, 0.0))
+        hair = sum(1 for w, _, _ in found if w == 0.5)
+        red = sum(1 for _, c, _ in found if c == (1.0, 0.0, 0.0))
         s.report(f"furniture rules page {page}", (hair, red) == (want_hair, want_red),
                  f"{hair} hairlines, {red} red (want {want_hair}, {want_red})")
+
+    # The theme's page distances place the rules: header 1.75cm from the top, footer 1.5cm
+    # from the bottom, in Centauri's theme.
+    ys = sorted(y for _, _, y in strokes(pdf, 1))
+    height = checks.page_height(pdf, 1)
+    at = (round((height - ys[-1]) / checks.CM, 2), round(ys[0] / checks.CM, 2)) if len(ys) == 2 else ys
+    s.report("rules at the theme's header-line and footer-line", at == (1.75, 1.5), repr(at))
 
     # A custom folio on page 1, a new sensitivity on page 2, Centauri's folio on page 3.
     pdf = s.pdf("tests/folio.typ")
