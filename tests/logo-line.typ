@@ -1,6 +1,6 @@
 #import "/lib.typ": *
 // Page 1: an image; page 2: a box with text. Both start at 1.2cm, are capped at 0.8cm and must be
-// centred on the line's cap-height midline; tests/centre.py measures it.
+// centred on the line's cap-height midline; tests/checks.py measures it.
 #set page(width: 10cm, height: 3cm, margin: 0.5cm)
 #set text(font: "Atkinson Hyperlegible Next", size: 14pt)
 #let red = rgb("#ff0000")

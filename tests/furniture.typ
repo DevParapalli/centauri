@@ -1,5 +1,8 @@
 #import "/lib.typ": *
-#show: centauri.with(stage: "review", header: (left: [L], right: [R]), sensitivity: "Internal")
+#show: centauri.with(stage: "review", theme: extend(centauri-theme, (
+  furniture: (header: (left: [L], right: [R])),
+  sensitivity: (default: "Internal"),
+)))
 = One
 #furniture(footer: (left: [CLIENT], right: [NOTE]), sensitivity: "Confidential")
 #pagebreak()

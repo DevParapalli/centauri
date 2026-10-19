@@ -1,9 +1,10 @@
 #import "/lib.typ": *
-// A divider titled Appendices, the word Appendix, Roman numbering.
-#show: centauri.with(stage: "review", h1-pagebreak: false)
+// A divider is an ordinary cover; annexes sets the word Appendix and Roman numbering.
+#show: centauri.with(stage: "review")
 = Body
 See @key.
-#show: annexes.with(title: [Appendices], subtitle: [Supporting material], word: "Appendix", numbering: ("I", "I.a"))
+#cover(title: [Appendices], subtitle: [Supporting material], backdrop: none, furniture: false)
+#show: annexes.with(word: "Appendix", numbering: ("I", "I.a"))
 = Key personnel <key>
 == Delivery lead
 = Glossary

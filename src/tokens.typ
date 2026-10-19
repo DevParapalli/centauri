@@ -1,9 +1,5 @@
-// Centauri tokens. Shared values come from tokens.toml, vendored from Proxima by
-// scripts/sync-tokens.py. Print-only decisions (flattened alpha, hairlines, sizes)
-// live here. Alpha tokens are flattened onto their ground so fills stay opaque in PDF.
-
-#let shared = toml("tokens.toml")
-#let phi = shared.scale.phi
+// Colour and scale utilities. Theme-free: they take colours and lengths, so any theme,
+// Centauri's or a brand's, can build its palette with them.
 
 #let _lin(v) = if v <= 0.04045 { v / 12.92 } else { calc.pow((v + 0.055) / 1.055, 2.4) }
 
@@ -19,10 +15,11 @@
   (hi + 0.05) / (lo + 0.05)
 }
 
-#let _over(fg, alpha, ground) = color.mix((fg, alpha * 100%), (ground, (1 - alpha) * 100%), space: rgb)
+/// `fg` at `alpha` (0 to 1) over `ground`, flattened so fills stay opaque in PDF.
+#let over(fg, alpha, ground) = color.mix((fg, alpha * 100%), (ground, (1 - alpha) * 100%), space: rgb)
 
-// Pull a text colour toward `ink` in 10% steps until it reaches 4.5:1 on `bg`.
-#let _legible(text, bg, ink) = {
+/// Pull a text colour toward `ink` in 10% steps until it reaches 4.5:1 on `bg`.
+#let legible(text, bg, ink) = {
   let c = text
   for step in range(1, 11) {
     if contrast(c, bg) >= 4.5 { break }
@@ -31,23 +28,11 @@
   c
 }
 
-/// Accent names available to `theme`, in token order.
-#let accents = shared.accent
-
 /// First candidate that reaches 4.5:1 against every ground.
 #let pick-link(candidates, grounds) = {
   let ok = candidates.filter(c => grounds.all(g => contrast(c, g) >= 4.5))
   assert(ok.len() > 0, message: "centauri: no link colour reaches 4.5:1 on this palette")
   ok.first()
-}
-
-#let _states(mode, paper, ink) = {
-  let out = (:)
-  for (name, s) in shared.state.at(mode) {
-    let fill = _over(rgb(s.base), s.fill, paper)
-    out.insert(name, (text: _legible(rgb(s.text), fill, ink), fill: fill, line: _over(rgb(s.text), s.line, paper)))
-  }
-  out
 }
 
 // Tonal ramp for an accent, 50 (lightest) to 950 (darkest), built in OKLCH from the
@@ -67,106 +52,18 @@
 /// Whichever of the two inks reads better on `ground`.
 #let ink-on(ground, dark: rgb("#1B1D2E"), light: rgb("#EFF0F8")) = if contrast(dark, ground) >= contrast(light, ground) { dark } else { light }
 
-#let _accent(a, paper) = (
-  accent: rgb(a.accent),
-  accent-deep: rgb(a.deep),
-  accent-ink: rgb(a.ink),
-  accent-fill: _over(rgb(a.accent), 0.12, paper),
-  charts: a.charts.map(rgb),
-)
-
-#let _light(a) = {
-  let n = shared.neutral.light
-  let paper = rgb(n.panel_2)
-  let cover = rgb(n.void)
-  let ink-hi = rgb(n.ink_hi)
-  let acc = _accent(a, paper)
-  (
-    mode: "light",
-    paper: paper,
-    cover: cover,
-    panel: rgb(n.panel),
-    ink-hi: ink-hi,
-    ink-mid: rgb(n.ink_mid),
-    ink-low: rgb(n.ink_low),
-    hairline: _over(ink-hi, 0.14, paper),
-    hairline-soft: _over(ink-hi, 0.07, paper),
-    link: pick-link((acc.accent, acc.accent-deep, ink-hi), (paper, cover)),
-    chart-neutral: rgb(shared.chart.neutral.light),
-  ) + acc + _states("light", paper, ink-hi)
-}
-
-#let _dark(a) = {
-  let n = shared.neutral.dark
-  let paper = rgb(n.void)
-  let white = rgb("#FFFFFF")
-  let ink-hi = rgb(n.ink_hi)
-  let acc = _accent(a, paper)
-  (
-    mode: "dark",
-    paper: paper,
-    cover: paper,
-    panel: rgb(n.panel),
-    ink-hi: ink-hi,
-    ink-mid: rgb(n.ink_mid),
-    ink-low: rgb(n.ink_low),
-    hairline: _over(white, 0.14, paper),
-    hairline-soft: _over(white, 0.08, paper),
-    link: pick-link((acc.accent, ink-hi), (paper,)),
-    chart-neutral: rgb(shared.chart.neutral.dark),
-  ) + acc + _states("dark", paper, white)
-}
-
-/// Heading sizes: size(hN) = body * phi ^ ((6 - N) / k), so h6 == body.
+/// Heading sizes: size(hN) = body * ratio ^ ((6 - N) / k), so h6 == body.
 /// `small` and `label` step down from body by one and two heading steps.
-/// `display` is h1 * phi, for covers and title slides.
-#let scale(body, k) = {
-  let step = calc.pow(phi, 1 / k)
+/// `display` is h1 * ratio, for covers and title slides.
+#let scale(body, k, ratio) = {
+  let step = calc.pow(ratio, 1 / k)
   let h(n) = body * calc.pow(step, 6 - n)
   (
     body: body,
     small: body / step,
     label: body / calc.pow(step, 2),
     h1: h(1), h2: h(2), h3: h(3), h4: h(4), h5: h(5), h6: h(6),
-    display: h(1) * phi,
+    display: h(1) * ratio,
     kpi: h(1),
-  )
-}
-
-/// Build a theme. Override any key by adding a dictionary: `theme() + (radius: ...)`.
-/// `accent` is the default; every accent is built so documents, pages and covers can switch.
-/// `scales.document` (10pt, k = 3) sets documents; `scales.deck` (16pt, k = 2) sets slides.
-#let theme(accent: "indigo", document: (body: 10pt, k: 3), deck: (body: 18pt, k: 2)) = {
-  assert(accent in accents, message: "centauri: accent must be one of " + accents.keys().join(", "))
-  let palettes = (:)
-  for (name, a) in accents {
-    palettes.insert(name, (
-      light: _light(a.light) + (accent-name: name, ramp: ramp(a.light.accent)),
-      dark: _dark(a.dark) + (accent-name: name, ramp: ramp(a.light.accent)),
-    ))
-  }
-  (
-    accent: accent,
-    palettes: palettes,
-    light: palettes.at(accent).light,
-    dark: palettes.at(accent).dark,
-    // Print faces, Centauri's own, all OFL-1.1: Atkinson Hyperlegible Next and Mono
-    // (Braille Institute) for text and code, Newsreader for quotations.
-    fonts: (
-      sans: ("Atkinson Hyperlegible Next",),
-      serif: ("Newsreader 16pt",),
-      mono: ("Atkinson Hyperlegible Mono", "DejaVu Sans Mono"),
-    ),
-    // Weight falls as size rises: large type is set light, small headings carry the weight.
-    weight: (body: 400, strong: 650, h1: 500, h2: 540, h3: 580, h4: 620, h5: 660, h6: 700, kpi: 600, label: 500),
-    deck-weight: (display: 300, h1: 320, h2: 360, h3: 420, h4: 480, h5: 560, h6: 650),
-    scales: (
-      document: scale(document.body, document.k) + (watermark: 110pt),
-      deck: scale(deck.body, deck.k) + (watermark: 110pt),
-    ),
-    radius: (s: 6pt, m: 9pt, l: 13.5pt, full: 999pt),
-    // Small labels (captions, key-value keys, table headers, register cards): "upper" sets
-    // them in tracked capitals, "as-written" keeps the author's case for brands that avoid capitals.
-    label-case: "upper",
   )
 }

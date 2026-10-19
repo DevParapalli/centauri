@@ -1,6 +1,6 @@
-# Centauri 0.3.2 reference
+# Centauri 0.4.0 reference
 
-This document is the complete reference for authoring with Centauri. It is written for people and for AI agents that generate Centauri documents and decks. Every name that `lib.typ` exports has its own `###` entry below; `tests/run.sh` fails when an export is undocumented or a documented name is not exported.
+This document is the complete reference for authoring with Centauri. It is written for people and for AI agents that generate Centauri documents and decks, and for anyone building a brand package on Centauri. Every name that `lib.typ` exports has its own `###` entry below; `tests/run.py` fails when an export is undocumented or a documented name is not exported.
 
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be interpreted as described in RFC 2119.
 
@@ -16,7 +16,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be interpreted a
 5. [Decks](#5-decks)
 6. [Slides](#6-slides)
 7. [Slide helpers](#7-slide-helpers)
-8. [Theme and tokens](#8-theme-and-tokens)
+8. [Themes](#8-themes)
 9. [Recipes](#9-recipes)
 10. [Authoring checklist](#10-authoring-checklist)
 
@@ -27,7 +27,7 @@ The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be interpreted a
 ### Import
 
 ```typ
-#import "@preview/centauri:0.3.2": *
+#import "@preview/centauri:0.4.0": *
 ```
 
 Against a checkout, import the entry file and set `--root` to a directory that contains both the document and the checkout:
@@ -38,13 +38,13 @@ Against a checkout, import the entry file and set `--root` to a directory that c
 
 ### Fonts
 
-Documents MUST be compiled with Centauri's fonts available. Without them Typst substitutes other fonts and page breaks change.
+Documents MUST be compiled with the theme's fonts available. Without them Typst substitutes other fonts and page breaks change.
 
 ```sh
 typst compile --font-path fonts document.typ
 ```
 
-The faces are Atkinson Hyperlegible Next (text), Atkinson Hyperlegible Mono (code, labels) and Newsreader (quotations, drop caps). All are OFL-1.1 and ship in `fonts/`.
+Centauri's own theme sets Atkinson Hyperlegible Next (text and headings), Atkinson Hyperlegible Mono (labels and code) and Newsreader (quotations, drop caps). All are OFL-1.1 and ship in `fonts/` of the source repository. A brand theme names its own faces in `fonts`, and its documents are compiled with the brand's font path.
 
 ### Compile-time inputs
 
@@ -67,12 +67,14 @@ Centauri stops the build rather than produce a document that breaks its rules. A
 
 | Condition | Error text contains | Fix |
 |---|---|---|
-| A document is longer than its `max-pages` (a `brief` allows 1) | `pages, but kind … allows` | Cut content, or pass `max-pages`. |
 | `todo[...]` remains at stage `final` | `unresolved todo placeholder(s)` | Resolve every `todo`. Use `tba` for a deliberate gap. |
 | A `lint` string appears at stage `final` | `lint match` | Remove the text. |
 | A slide's content runs onto a second page | `overflows its page` | Cut the content or split the slide. Sizes never shrink to fit. |
 | A slide title ends with a full stop | `ends with a full stop` | Remove the full stop. |
-| A theme override puts the link colour below 4.5:1 on the page or cover | `below 4.5:1` | Choose a darker link colour. |
+| A theme puts a link colour below 4.5:1 on the page or cover | `below 4.5:1` | Choose a darker link colour. |
+| A theme key is misspelled, or a written-out theme leaves one out | `unknown theme key`, `theme is missing` | Use the keys in [Themes](#8-themes). |
+| A sensitivity is not one of the theme's `levels` | `is not one of the theme's levels` | Use a listed level. |
+| An accent is asked of a theme without it | `has no accents`, `accent must be one of` | Use one of the theme's accents. |
 | An argument is outside its allowed values | `must be` | Use a listed value. |
 
 A clean build SHOULD also produce no warnings. A warning such as `document did not converge` indicates a defect in Centauri, not in the document, and SHOULD be reported.
@@ -81,109 +83,82 @@ A clean build SHOULD also produce no warnings. A warning such as `document did n
 
 ## 3. Documents
 
-A document is any `kind` other than `deck`. It is set up once with a show rule:
+A document is set up once with a show rule. `kind` defaults to `"document"`.
 
 ```typ
-#show: centauri.with(kind: "report", title: "Quarterly review", sensitivity: "Internal")
+#show: centauri.with(title: "Quarterly review", stage: "review")
 ```
+
+Where the content goes is the author's: a level 1 heading does not start a page, so a document that wants one per page puts `#pagebreak()` before it. Covers, dividers and back covers are [`cover`](#cover) calls placed where they belong.
 
 ### `centauri`
 
-The single entry point for documents and decks. With `kind: "deck"` it builds slides and takes the arguments in [Decks](#5-decks); otherwise it takes these:
+The single entry point. `kind` is `"document"` (the default) or `"deck"`; any other value stops the build. With `kind: "deck"` it takes the arguments in [Decks](#5-decks); otherwise these:
 
 | Argument | Default | Values and effect |
 |---|---|---|
-| `kind` | `"report"` | A key of [`kinds`](#kinds). Selects the defaults marked *kind* below. |
-| `accent` | theme default (`"indigo"`) | `"indigo"`, `"teal"`, `"ember"`, `"lime"`. |
+| `theme` | `auto` | A theme dictionary; `auto` is [`centauri-theme`](#centauri-theme). See [Themes](#8-themes). |
+| `accent` | `auto` | One of the theme's `accents`; `auto` keeps the theme's own colours. |
 | `title` | `none` | Document metadata title. It is not printed; use [`cover`](#cover) for a printed title. |
 | `author` | `()` | Metadata. |
 | `keywords` | `()` | Metadata. |
 | `date` | `auto` | Metadata date. |
 | `lang`, `region` | `"en"`, `none` | Text language and region. |
 | `paper` | `"a4"` | `"a4"` or `"us-letter"`. |
-| `orientation` | *kind* | `"portrait"` or `"landscape"`. |
-| `columns` | *kind* | Number of text columns. |
-| `max-pages` | *kind* | Integer or `none`. The build stops when the document is longer. |
-| `sidenotes` | *kind* | `true` widens the right margin to 5.4cm and sets [`sidenote`](#sidenote) there; `false` turns sidenotes into footnotes. |
+| `orientation` | `"portrait"` | `"portrait"` or `"landscape"`. |
+| `columns` | `1` | Number of text columns. |
 | `stage` | `"draft"` | `"draft"`, `"review"` or `"final"`. See [Stages](#stages). |
-| `lint` | `()` | Array of strings that MUST NOT appear at stage `final`; highlighted in rose before that. |
+| `lint` | `()` | Array of strings that MUST NOT appear at stage `final`; highlighted in the danger tone before that. |
 | `numbering` | `"1.1"` | Heading numbering pattern, or `none`. |
-| `h1-pagebreak` | *kind* | `true` starts each level 1 heading on a new page. |
-| `h1-style` | *kind* | `auto`, `"banner"`, `"rule"`, `"compact"`. See [Headings](#headings). |
 | `heading-numbers` | `"inline"` | `"inline"`, `"hang"` (outdented into the margin) or `"none"`. |
-| `header` | `(:)` | Header slots; see [Page furniture](#page-furniture). |
-| `footer` | `(:)` | Footer slots. |
-| `sensitivity` | `none` | Label printed after the page number, such as `"Internal"`. |
-| `header-rule` | `auto` | Rule under the header: a stroke, `none` or `auto` (0.5pt hairline). |
-| `footer-rule` | `auto` | Rule above the footer, as `header-rule`. |
-| `folio` | `auto` | Footer-centre page label: a function `(page, total, sensitivity) => content`, or `auto` for `n/N \| sensitivity`. See [Page furniture](#page-furniture). |
-| `req-label` | `"Reference"` | Word printed before a [`req`](#req) identifier. |
 
-Passing `auto` for a *kind* argument uses the kind's default.
-
-### `kinds`
-
-Dictionary of per-kind defaults. Explicit arguments to `centauri` override them.
-
-| Kind | Orientation | Columns | `h1-pagebreak` | `h1-style` | `max-pages` | `sidenotes` |
-|---|---|---|---|---|---|---|
-| `report`, `rfp`, `spec` | portrait | 1 | `true` | `auto` | `none` | `false` |
-| `brief` | portrait | 1 | `false` | `"compact"` | 1 | `false` |
-| `handout` | portrait | 2 | `false` | `auto` | `none` | `false` |
-| `handbook` | portrait | 1 | `true` | `auto` | `none` | `true` |
-| `wallchart` | landscape | 1 | `false` | `auto` | `none` | `false` |
-
-`deck` is handled separately and is not a key of `kinds`.
+Page furniture, sensitivity, margins, fonts and words come from the theme; a document changes them by passing `theme: extend(...)` or, for furniture, with [`furniture`](#furniture).
 
 ### Headings
 
-- Level 1, `h1-style: auto`: a heading that opens a page is set as a **banner**, a tinted band across the full page width with the number and title centred and an accent rule beneath. A heading that falls mid-page, or any level 1 heading in a multi-column layout, is set as a **rule**: under a full-width line, with its number beside it.
-- Level 1, `h1-style: "compact"`: the heading keeps the h1 size and sets its number beside it, with no band and no line, and tight spacing. It is the default for `brief` and SHOULD be used wherever page space matters.
-- Level 1, `h1-style: "banner"`, `"rule"` or `"compact"`: every level 1 heading takes that treatment.
-- Levels 2 to 6 are plain headings. Their numbers are set at the heading's own size and weight in low ink.
+Each level is drawn by the theme's `h1` to `h6` function; levels below 6 use `h6`. Centauri's own:
+
+- Level 1 that opens a page: a **banner**, a tinted band across the full page width with the number and title centred and an accent rule beneath.
+- Level 1 that falls mid-page, or any level 1 heading in a multi-column layout: a **rule**, under a full-width line, with its number beside it.
+- Levels 2 to 6: plain headings. Their numbers are set at the heading's own size and weight in low ink.
 
 ### Stages
 
-| Stage | Watermark | [`note`](#note) | [`todo`](#todo) | `lint` matches |
+| Stage | Watermark | [`note`](#note), [`warn`](#warn) | [`todo`](#todo) | `lint` matches |
 |---|---|---|---|---|
-| `draft` | `DRAFT` across each page | shown | amber | highlighted |
-| `review` | none | hidden | amber | highlighted |
+| `draft` | the theme's `draft` word across each page | shown | caution tone | highlighted |
+| `review` | none | hidden | caution tone | highlighted |
 | `final` | none | hidden | build stops | build stops |
 
 ### Page furniture
 
-Inner pages carry left, centre and right slots above the header rule and below the footer rule. Each slot takes content, `none`, `auto`, or a function of the page tone (`tone => content`).
+Inner pages carry left, centre and right slots above the header rule and below the footer rule. The theme's `furniture` sets them from page 1; [`furniture`](#furniture) changes them later. Each slot takes content, `none`, or a function of no arguments, called in context, which MAY read [`theme-now`](#theme-now). Centauri's theme prints [`folio`](#folio) in the footer centre and leaves the other slots empty.
 
-- Header centre: empty by default. `auto` prints the running head, the level 1 heading in force on the page.
-- Footer centre: `auto` by default, which prints the folio: the page as `n/N` followed by ` | ` and the sensitivity label when one is set. `folio` replaces it with a function of the page number, the total and the sensitivity, such as `folio: (n, total, s) => [#s | #n]`; the sensitivity is the one in force on that page.
-- Footer left and right: `auto` prints the folio too, so a design can move it out of the centre: `footer: (center: none, right: auto)`.
-- Header left and right: `auto` prints nothing.
+A rule sits under the header and above the footer. `header-rule` and `footer-rule` take a stroke (`1pt + black`), `none` to drop the rule, or `auto` for the theme's hairline in the page's hairline colour. Any other value stops the build.
 
-Slots given to `centauri(header:, footer:, sensitivity:)` apply from page 1, whatever the page opens with.
-
-A rule sits under the header and above the footer. `header-rule` and `footer-rule` take a stroke (`1pt + black`), `none` to drop the rule, or `auto` for the default 0.5pt hairline in the page's hairline colour. Any other value stops the build.
+The theme's `page` places the rules and the body: see [Themes](#8-themes).
 
 ### `furniture`
 
-`furniture(header: (:), footer: (:), sensitivity: auto, header-rule:, footer-rule:, folio:)`
+`furniture(header: (:), footer: (:), sensitivity: auto, header-rule:, footer-rule:)`
 
-Changes slots, rules and the folio from this point on. Keys given replace the current value; keys left out are kept, and `auto` restores a rule's or the folio's default. Header and footer read the furniture as it stands at the top of each page, so a change takes effect on the next page.
+Changes slots, rules and the sensitivity from the next page on. Keys given replace the current value; keys left out are kept, and `auto` restores a rule's default. A call made anywhere on a page takes effect on the page after it, for the header, the footer and [`theme-now`](#theme-now) alike. A sensitivity outside the theme's `levels` stops the build.
 
 ```typ
 #furniture(footer: (left: [Client copy]), sensitivity: "Confidential")
 ```
 
+### `folio`
+
+Slot function: the page as `n/N`, then ` | ` and the sensitivity in force when there is one, in the label face. Place it with `footer: (center: folio)`. A brand writes its own as any function of no arguments, such as `() => [#theme-now().sensitivity | #counter(page).get().first()]`.
+
 ### `current-section`
 
-A slot value that prints the level 1 heading in force, with its number. `header: (center: auto)` gives the same result in the header centre; `current-section` MAY be used in any slot.
-
-```typ
-#show: centauri.with(kind: "handbook", header: (right: current-section))
-```
+Slot function: the level 1 heading in force on the page, with its number. It MAY be used in any slot: `furniture(header: (center: current-section))`.
 
 ### `tone`
 
-State holding the active page tone, `"light"` or `"dark"`. It is `"dark"` inside a dark [`cover`](#cover). Read it in `context`:
+State holding the active page tone, `"light"` or `"dark"`. It is `"dark"` inside a dark [`cover`](#cover). [`theme-now`](#theme-now) reports it as `tone`.
 
 ```typ
 #context if tone.get() == "dark" [On a dark ground.]
@@ -191,13 +166,13 @@ State holding the active page tone, `"light"` or `"dark"`. It is `"dark"` inside
 
 ### Accents
 
-The accent MAY be set for the whole document (`centauri(accent:)`), for one cover, part or slide (`accent:` on that call), from a point onward ([`use-accent`](#use-accent)), or for one passage ([`with-accent`](#with-accent)). The link colour of every accent reaches 4.5:1 on both the page and the cover ground.
+A theme MAY carry named accents in `accents`. The accent MAY then be set for the whole document (`centauri(accent:)`), for one cover or slide (`accent:` on that call), from a point onward ([`use-accent`](#use-accent)), or for one passage ([`with-accent`](#with-accent)). A theme with `accents: none` has one set of colours, and asking it for an accent stops the build.
 
 ### `use-accent`
 
 `use-accent(name)`
 
-Switches the accent from this point on. In a deck, the accent returns to the deck accent at the next slide; set `accent:` on each slide instead.
+Switches the accent from this point on, across pages. In a deck, the accent returns to the deck accent at the next slide; set `accent:` on each slide instead.
 
 ### `with-accent`
 
@@ -207,73 +182,55 @@ Sets `body` in another accent, then returns to the accent that was in force.
 
 ### `cover`
 
-`cover(tone: "light", accent: auto, title: none, subtitle: none, meta: (), heading: false, furniture: true, bloom: true)[body]`
+`cover(tone: "light", accent: auto, title: none, subtitle: none, meta: (), heading: false, furniture: true, backdrop: auto)[body]`
 
-A full page that MAY appear anywhere in a document.
+A full page. Where it is placed decides its role: a front cover, a section or annex divider, or a back cover.
 
 | Argument | Effect |
 |---|---|
 | `tone` | `"light"` or `"dark"` ground. Components inside read the cover's tone. |
 | `accent` | Accent for this page only. |
-| `title` | Set at display size. |
+| `title` | Set at display size in the heading face. |
 | `subtitle` | Set beneath the title. |
 | `meta` | Array of `(label, value)` pairs, printed as a key–value list at the foot of the page. |
 | `heading` | `true` makes the title a numbered level 1 heading, listed in the outline. |
 | `furniture` | `false` removes the header. Covers never carry a footer. |
-| `bloom` | `false` prints a flat ground instead of the accent bloom. |
+| `backdrop` | Drawn behind the page. `auto` is the theme's `backdrop` element (Centauri's is an accent bloom); `none` leaves the flat cover ground; content such as `image("wave.png", width: 100%)` is placed at the top left; a function of no arguments is called in context with the cover's tone in force. |
 | `body` | Optional content beneath the subtitle, at 78% width. |
 
-`cover` has no eyebrow argument; passing an unknown named argument stops the build.
+Passing an unknown named argument stops the build.
 
 ```typ
 #cover(tone: "dark", title: [Quarterly review], subtitle: [Q3 2026], meta: (([Owner], [Platform team]), ([Status], [Draft])))[]
 ```
 
-### `part`
-
-`part(title, subtitle: none, accent: auto)`
-
-A full-page divider numbered `Part I`, `Part II`, and so on, for grouping chapters in a handbook. Starts on a new page and carries no furniture.
-
 ### `annexes`
 
-`#show: annexes` or `#show: annexes.with(title: none, subtitle: none, word: "Annex", numbering: ("A", "A.1"))`
+`#show: annexes` or `#show: annexes.with(word: auto, numbering: ("A", "A.1"))`
 
-Everything after it is an annex. Heading numbers restart: level 1 headings take the first pattern (`A`, `B`, …) and lower levels the second (`A.1`, `A.2`, …).
+Everything after it is an annex. Heading numbers restart: level 1 headings take the first pattern (`A`, `B`, …) and lower levels the second (`A.1`, `A.2`, …). It draws nothing; a divider is a [`cover`](#cover) placed before it.
 
 | Argument | Effect |
 |---|---|
-| `title` | When set, a divider page with this title comes first, in the style of [`part`](#part). `none` draws no divider. |
-| `subtitle` | Set beneath the divider title. |
-| `word` | What a reference to an annex heading prints before its number: `@key` reads "Annex A". |
+| `word` | What a reference to an annex heading prints before its number: `@key` reads "Annex A". `auto` takes the theme's `words.annex`. |
 | `numbering` | Two numbering patterns: level 1, then lower levels. Anything else stops the build. |
 
 ```typ
-#show: annexes.with(title: [Appendices], word: "Appendix", numbering: ("I", "I.a"))
-```
-
-### `letter`
-
-`letter(sender: none, contact: (), recipient: none, date: today, subject: none, closing: [Yours sincerely,], signature: none, paper: "a4", lang: "en")[body]`
-
-A separate template for correspondence, used as a show rule instead of `centauri`. `contact` is an array of strings joined with ` · ` under the sender. Page numbers appear only when the letter runs past one page.
-
-```typ
-#show: letter.with(sender: [Platform team], contact: ("team@example.com",), recipient: [Ms A. Rao], subject: [Renewal terms], signature: [D. Parapalli])
-Body of the letter.
+#cover(title: [Appendices], backdrop: none)
+#show: annexes.with(word: "Appendix", numbering: ("I", "I.a"))
 ```
 
 ---
 
 ## 4. Document components
 
-All components in this section also work inside slides. Tones used by several components are `"mute"` (or `none`), `"accent"`, `"mint"`, `"amber"`, `"rose"` and `"sky"`.
+All components in this section also work inside slides, and read their colours, faces and words from the theme. Tones used by several components are `"mute"` (or `none`), `"accent"`, `"success"`, `"caution"`, `"danger"` and `"info"`.
 
 ### `todo`
 
 `todo[body]`
 
-Placeholder for missing content, in amber brackets. The build stops at stage `final` while any remain.
+Placeholder for missing content, in caution brackets. The build stops at stage `final` while any remain.
 
 ### `tba`
 
@@ -285,19 +242,25 @@ A deliberate, agreed gap, in neutral brackets. Visible at every stage and never 
 
 `note[body]`
 
-Drafting note in a sky-blue block. Printed at stage `draft` only.
+Drafting note in an info block, led by the theme's `drafting-note` word. Printed at stage `draft` only.
+
+### `warn`
+
+`warn[body]`
+
+A small remark in the danger tone, placed just below the point it is called at. It takes no space, so nothing moves when it is dropped, and it never stops a build. Printed at stage `draft` only. For flagging a known breach of a brand rule next to the thing that breaks it.
 
 ### `req`
 
 `req[identifier]`
 
-Small line citing a requirement: the `req-label` word, then the identifier in mono.
+Small line citing a requirement: the theme's `req` word, then the identifier in the label face.
 
 ### `chip`
 
 `chip[body]`
 
-Small mono label in a panel box, for codes and identifiers.
+Small label in a panel box, for codes and identifiers.
 
 ### `pill`
 
@@ -309,17 +272,17 @@ Rounded status label in one of the tones, with a leading dot unless `dot: false`
 
 `status(word)`
 
-A `pill` for a compliance status. `word` is `"compliant"` (mint), `"partial"` (amber), `"exception"` (rose) or `"noted"` (sky); case does not matter.
+A `pill` for a compliance status. `word` is `"compliant"` (success), `"partial"` (caution), `"exception"` (danger) or `"noted"` (info); case does not matter. The printed word comes from the theme's `words.status`.
 
 ### `delta`
 
 `delta(direction: "up")[body]`
 
-Change indicator: mint for `"up"`, rose for `"down"`.
+Change indicator: success for `"up"`, danger for `"down"`.
 
 ### `callout`
 
-`callout(tone: "amber", title: none)[body]`
+`callout(tone: "caution", title: none)[body]`
 
 Boxed message with a `!` marker, in one of the tones. It does not break across pages.
 
@@ -327,7 +290,7 @@ Boxed message with a `!` marker, in one of the tones. It does not break across p
 
 `rule-note[body]`
 
-Mono note beside an accent line, for rules, conventions or code-adjacent remarks.
+Note in the label face beside an accent line, for rules, conventions or code-adjacent remarks.
 
 ### `card`
 
@@ -339,13 +302,13 @@ Outlined block with rounded corners.
 
 `kpi(label, value, foot: none)`
 
-Outlined block with a mono label, the value at h1 size in tabular figures, and an optional foot line. Place several in a `grid` to form a row.
+Outlined block with a label, the value at h1 size in tabular figures, and an optional foot line. Place several in a `grid` to form a row.
 
 ### `kv`
 
 `kv(..pairs)`
 
-Key–value list. Each pair is `(label, value)`; labels are set in small mono capitals.
+Key–value list. Each pair is `(label, value)`; labels are set as small labels.
 
 ```typ
 #kv(([Owner], [Platform team]), ([Due], [30 September]))
@@ -355,7 +318,7 @@ Key–value list. Each pair is `(label, value)`; labels are set in small mono ca
 
 `data-table(columns: 1, align: auto, header: none, ..cells)`
 
-Table with hairline rows and no vertical rules. `header` is an array of cells, set as small mono capitals. The first column is set in high ink. `align` defaults to left and top; it takes any Typst table alignment, including a function `(x, y) => alignment`.
+Table with hairline rows and no vertical rules. `header` is an array of cells, set as small labels. The first column is set in high ink. `align` defaults to left and top; it takes any Typst table alignment, including a function `(x, y) => alignment`.
 
 ```typ
 #data-table(columns: 3, header: ([Item], [2025], [2026]), align: (x, _) => if x == 0 { left } else { right },
@@ -379,7 +342,7 @@ RFP compliance table. Each row is `(ref, requirement, status, response)`; `statu
 
 `sig-block(..parties)`
 
-Two-column signature block with Name, Title, Signature and Date lines under each party name.
+Two-column signature block with the theme's `sig-block` lines (Name, Title, Signature and Date) under each party name.
 
 ### `revision-history`
 
@@ -397,7 +360,7 @@ Numbered list of information needed from others. Each row is `(request, owner, n
 
 `assumption[statement]`
 
-Numbered register entry `A1`, `A2`, … in a panel block. Collected by [`register-table`](#register-table).
+Numbered register entry `A1`, `A2`, … in a panel block. Collected by [`register-table`](#register-table). The word and prefix of every register come from the theme's `words.registers`.
 
 ### `dependency`
 
@@ -409,41 +372,35 @@ Numbered register entry `A1`, `A2`, … in a panel block. Collected by [`registe
 
 ### `risk`
 
-`risk[statement]` — register entry `R1`, `R2`, …, in amber.
+`risk[statement]` — register entry `R1`, `R2`, …, in the caution tone.
 
 ### `issue`
 
-`issue[statement]` — register entry `I1`, `I2`, …, in rose.
+`issue[statement]` — register entry `I1`, `I2`, …, in the danger tone.
 
 ### `register-table`
 
 `register-table(kind)`
 
-Table of every entry of one register in the document, with linked ID, statement and page. `kind` is `"assumption"`, `"dependency"`, `"decision"`, `"risk"` or `"issue"`. Prints "No entries." when there are none.
+Table of every entry of one register in the document, with linked ID, statement and page. `kind` is `"assumption"`, `"dependency"`, `"decision"`, `"risk"` or `"issue"`. Prints the theme's `no-entries` words when there are none.
 
 ### `pull-quote`
 
 `pull-quote(attribution: none)[body]`
 
-Large serif quotation beside an accent line.
+Large quotation in the quote face beside an accent line.
 
 ### `epigraph`
 
 `epigraph(attribution: none)[body]`
 
-Short serif quotation set to the right, for the opening of a chapter.
+Short quotation set to the right, for the opening of a chapter.
 
 ### `drop-cap`
 
 `drop-cap(lines: 3, gap: 4pt, body)`
 
-Opening paragraph with a serif capital spanning `lines` lines. `body` MUST be a plain string, not content.
-
-### `sidenote`
-
-`sidenote[body]`
-
-A numbered note in the outer margin when `sidenotes` is on (the `handbook` default); a footnote otherwise.
+Opening paragraph with a capital in the quote face spanning `lines` lines. `body` MUST be a plain string, not content.
 
 ### `glossary`
 
@@ -451,7 +408,7 @@ A numbered note in the outer margin when `sidenotes` is on (the `handbook` defau
 
 Terms sorted and grouped by first letter. Each entry is `(term, definition)`; `term` SHOULD be a string so it sorts correctly.
 
-Figures and tables captioned with Typst's `figure` get a mono label, such as `FIGURE 1` or `TABLE 1`, before the caption.
+Figures and tables captioned with Typst's `figure` are drawn by the theme's `caption` element; Centauri's sets a label, such as `FIGURE 1` or `TABLE 1`, before the caption. Footnotes go at the foot of their page with Typst's `footnote`, drawn by the theme's `footnote` element.
 
 ### `fit-logo`
 
@@ -481,10 +438,11 @@ With `kind: "deck"`, `centauri` takes:
 
 | Argument | Default | Values and effect |
 |---|---|---|
+| `theme` | `auto` | A theme dictionary; `auto` is [`centauri-theme`](#centauri-theme). |
 | `aspect` | `"16:9"` | `"16:9"` (33.867 × 19.05cm) or `"4:3"` (25.4 × 19.05cm). |
 | `projection` | `auto` | `"light"` or `"dark"`. `auto` takes `tone`. |
 | `tone` | `"light"` | Used when `projection` is `auto`. |
-| `accent` | theme default | Deck accent. Slides without `accent:` use it. |
+| `accent` | `auto` | One of the theme's accents; `auto` keeps the theme's own colours. Slides without `accent:` use it. |
 | `label` | `none` | Top left of every slide, such as the series name. |
 | `date` | `none` | Top right of every slide. Any content. |
 | `presenter` | `none` | Bottom right of every slide except the title slide. |
@@ -493,7 +451,7 @@ With `kind: "deck"`, `centauri` takes:
 | `bloom` | `true` | `false` removes the accent bloom. |
 | `title`, `author`, `lang` | `none`, `()`, `"en"` | Metadata and language. |
 
-Document-only arguments (`stage`, `header`, `sensitivity` and so on) MUST NOT be passed to a deck.
+Document-only arguments (`stage`, `lint`, `paper` and so on) MUST NOT be passed to a deck; the build stops on them.
 
 ### Grounds
 
@@ -506,7 +464,7 @@ Every slide carries a hairline near the top and one near the foot.
 
 - Above the top line: `label` (or the left logo), the current section title in the centre (omitted on section slides), and `date` (or the right logo).
 - Below the foot line: the slide count as `NN / TT` on the left and `presenter` on the right.
-- A `source:` line, where a slide takes one, sits at the bottom left of the content area as `Source: …`.
+- A `source:` line, where a slide takes one, sits at the bottom left of the content area after the theme's `words.deck.source`.
 
 ### Output modes
 
@@ -629,7 +587,7 @@ Numbered sequence in columns. `current: n` emphasises step `n` and dims the othe
 
 `exercise(title: none, task: none, minutes: none, output: none, projection: auto, accent: auto)`
 
-Training exercise: the task, an "Expected output" block, and the time box set large on the right. Without `accent:` it takes a second accent, ember, or teal when the deck accent is ember, so exercises stand apart from content.
+Training exercise: the task, an "Expected output" block, and the time box set large on the right. Pass `accent:` to set exercises apart from content slides.
 
 ### `appendix`
 
@@ -703,43 +661,128 @@ Speaker notes for the slide it follows. Printed beneath the slide in `handout` m
 
 ---
 
-## 8. Theme and tokens
+## 8. Themes
 
-### `theme`
-
-`theme(accent: "indigo", document: (body: 10pt, k: 3), deck: (body: 18pt, k: 2))`
-
-Builds a theme dictionary: palettes for every accent in light and dark, fonts, weights, type scales and radii. Any key MAY be overridden by adding a dictionary: `theme() + (radius: (s: 4pt, m: 6pt, l: 9pt, full: 999pt))`.
-
-`label-case` sets the small labels: figure and table captions, key–value keys, table headers, attributions, KPI and signature labels, and register cards. `"upper"` (the default) sets them in tracked capitals; `"as-written"` keeps the author's case without tracking, for brands that avoid capitals: `theme() + (label-case: "as-written")`. Any other value stops the build.
-
-### `make-kit`
-
-`make-kit(theme)`
-
-Builds every component from a theme and returns them as a dictionary. Use it for a custom theme:
+A theme is one dictionary: colours, faces, sizes, strokes, page geometry, the heading and element functions, the starting furniture, the sensitivity levels and the words. Centauri supplies the rules (stages, gates, numbering, furniture state) and its own theme, [`centauri-theme`](#centauri-theme). A brand package overrides that theme with [`extend`](#extend) and passes the result as `theme:`:
 
 ```typ
-#let (centauri, cover, claim, ..rest) = make-kit(theme(accent: "teal", document: (body: 10.5pt, k: 3)))
+#import "@preview/centauri:0.4.0": *
+#let brand = extend(centauri-theme, (
+  fonts: (heading: ("Newsreader 16pt",)),
+  sensitivity: (default: "Internal", levels: ("Public", "Internal", "Confidential")),
+  words: (annex: "Schedule"),
+))
+#show: centauri.with(theme: brand, stage: "review")
+= Body
 ```
 
-### `kit`
+`examples/lol/` is a complete brand package built this way.
 
-The dictionary `make-kit(theme())`, from which `lib.typ` exports the components.
+### Keys
 
-### `scale`
+| Key | Holds |
+|---|---|
+| `colors` | `light` and `dark` palettes, each with the colour names below. |
+| `accents` | Named accents, each `(light: (...), dark: (...))` setting any of the colour names on top of `colors`; or `none`. Replaced whole by an override, never merged. |
+| `fonts` | `body`, `heading`, `label` (small labels, folios, chips), `code` (raw text) and `quote` (quotations, drop caps): each an array of family names. |
+| `type` | `document` and `deck`, each `(body: size, k: steps)`; `ratio` (φ in Centauri's theme); `weights` (`body`, `strong`, `h1`–`h6`, `kpi`, `label`) and `deck-weights` (`display`, `h1`–`h6`). Sizes follow `size(hN) = body × ratio^((6 − N) / k)`, so h6 is body size. |
+| `strokes` | `hairline`, `rule` and `emphasis`: widths. Colours come from `colors`. |
+| `page` | `left`, `right`: side margins. `header-line`: distance from the top edge to the header rule. `header-gap`: from that rule to the body. `footer-line`: distance from the bottom edge to the footer rule. `footer-gap`: from the body to that rule. |
+| `h1` … `h6` | Functions of the heading element, called in context. |
+| `elements` | `quote` (block quotes), `raw` (code blocks), `caption` (figure captions), `footnote` (footnote entries): functions of the element, called in context. `backdrop`: a function of no arguments drawing a cover's backdrop. |
+| `furniture` | `header` and `footer` (`left`, `center`, `right` slots), `header-rule`, `footer-rule`: the furniture from page 1. |
+| `sensitivity` | `default` (`none` or a value) and `levels` (`none`, or an array of every value a document may use). |
+| `words` | `contents`, `draft`, `annex`, `drafting-note`, `no-entries`, `req`; `status` (one word per compliance status); `registers` (`word` and `prefix` per register); `tables` (header cells per table component); `sig-block` (signature lines); `deck` (`section`, `of`, `slides`, `minutes`, `expected-output`, `source`). |
+| `label-case` | `"upper"` sets small labels in tracked capitals; `"as-written"` keeps the author's case without tracking. |
+| `radius` | `s`, `m`, `l`, `full`. |
 
-`scale(body, k)`
+Colour names, in each of `light` and `dark`:
 
-Type scale: `size(hN) = body × φ^((6 − N) / k)`, so h6 is body size. Returns `body`, `small`, `label`, `h1` to `h6`, `display` (h1 × φ) and `kpi`.
+- Grounds: `paper` (the page), `cover` (covers), `panel` (raised blocks).
+- Ink: `ink-hi`, `ink-mid` (body text), `ink-low`.
+- Lines: `hairline`, `hairline-soft`.
+- Accent: `accent`, `accent-deep`, `accent-ink` (text on an accent fill), `accent-fill`, `link`, `charts` (five series colours), `ramp` (tones `"50"` to `"950"`), `chart-neutral`.
+- States: `success`, `caution`, `danger`, `info`, each `(text:, fill:, line:)`.
 
-### `phi`
+Every `link` MUST reach 4.5:1 on its `paper` and `cover`, in every accent; the build stops otherwise.
 
-The golden ratio, from `tokens.toml`.
+### Writing a heading or element function
 
-### `accents`
+The function receives the element and returns content. It is called in context, so it reads the theme with [`theme-now`](#theme-now) directly; [`heading-number`](#heading-number) and [`at-page-top`](#at-page-top) give what a heading needs beyond the theme.
 
-Dictionary of accent names and their token values: `indigo`, `teal`, `ember`, `lime`.
+```typ
+#import "@preview/centauri:0.4.0": *
+#let h1(it) = {
+  let t = theme-now()
+  block(above: 1.6em, below: 1em, sticky: true, text(font: t.fonts.heading, size: t.sizes.h1, fill: t.colors.ink-hi)[
+    #heading-number(it) #it.body
+  ])
+}
+#show: centauri.with(theme: extend(centauri-theme, (h1: h1)))
+= A heading
+```
+
+### `centauri-theme`
+
+Centauri's own theme: Proxima's colours in four accents (indigo by default, then teal, ember and lime), Atkinson Hyperlegible and Newsreader, the banner and rule level 1 headings, and an accent bloom behind covers.
+
+### `extend`
+
+`extend(base, overrides)`
+
+`base` with `overrides` merged in, dictionary by dictionary: `extend(centauri-theme, (fonts: (heading: ("X",))))` changes the heading face and keeps every other face. A key `base` does not have stops the build and names the key. `accents` is replaced whole.
+
+### `theme-now`
+
+`theme-now()`, inside `context`.
+
+The theme in force at this point, with `colors` resolved to one palette for the page's tone and accent, and these added:
+
+| Key | Value |
+|---|---|
+| `tone` | `"light"` or `"dark"`. |
+| `accent` | The accent in force, or `none`. |
+| `stage` | `"draft"`, `"review"` or `"final"`. |
+| `sensitivity` | The sensitivity in force on this page. |
+| `sizes` | `body`, `small`, `label`, `h1`–`h6`, `display`, `kpi`, `watermark` for the document or deck scale. |
+| `heading-numbers` | The document's `heading-numbers`. |
+| `columns` | The document's column count. |
+
+It stops the build when no `centauri` show rule is in force.
+
+### `themed`
+
+`themed(fn)`
+
+Shorthand for `context fn(theme-now())`.
+
+```typ
+#themed(t => rect(width: 1cm, height: 0.5cm, fill: t.colors.panel))
+```
+
+### `palette`
+
+`palette(tone, accent)`, inside `context`.
+
+The theme's palette for another tone or accent: `palette("dark", none).paper`.
+
+### `heading-number`
+
+`heading-number(it)`, inside `context`.
+
+A heading's formatted number, or `none` when it has none or `heading-numbers` is `"none"`.
+
+### `at-page-top`
+
+`at-page-top()`, inside `context`.
+
+Whether this point is at the top of the page's body, as a heading that opens a page is.
+
+### `label-text`
+
+`label-text(body, size: auto, fill: auto)`
+
+A small label in the theme's label face and `label-case`, as captions and table headers are set.
 
 ### `ramp`
 
@@ -752,6 +795,12 @@ Tonal ramp from 50 (lightest) to 950 (darkest), built in OKLCH at constant hue. 
 `ink-on(ground, dark: rgb("#1B1D2E"), light: rgb("#EFF0F8"))`
 
 Returns whichever ink has the higher contrast on `ground`.
+
+### `over`
+
+`over(fg, alpha, ground)`
+
+`fg` at `alpha` (0 to 1) laid over `ground`, flattened to one opaque colour, for fills that print the same in every PDF viewer.
 
 ### `contrast`
 
@@ -776,9 +825,11 @@ Dictionary of slide sizes: `"16:9"` and `"4:3"`, each `(width, height)`.
 ### One-page brief
 
 ```typ
-#import "@preview/centauri:0.3.2": *
-#show: centauri.with(kind: "brief", accent: "teal", title: "Capstone proposal",
-  header: (left: [Capstone proposal], right: [AI Builder Track]), sensitivity: "Internal")
+#import "@preview/centauri:0.4.0": *
+#show: centauri.with(accent: "teal", title: "Capstone proposal", theme: extend(centauri-theme, (
+  furniture: (header: (left: [Capstone proposal], right: [AI Builder Track])),
+  sensitivity: (default: "Internal"),
+)))
 
 = Capstone proposal
 #kv(([Team], [Three people]), ([Due], [30 September]))
@@ -792,32 +843,56 @@ One paragraph.
 #risk[The labelled data set may be too small.]
 ```
 
-The brief uses compact level 1 headings and stops the build if it runs past one page.
-
 ### Report
 
 ```typ
-#import "@preview/centauri:0.3.2": *
-#show: centauri.with(kind: "report", title: "Quarterly review", header: (center: auto), sensitivity: "Internal")
+#import "@preview/centauri:0.4.0": *
+#show: centauri.with(title: "Quarterly review", theme: extend(centauri-theme, (
+  furniture: (header: (center: current-section)),
+  sensitivity: (default: "Internal"),
+)))
 
 #cover(tone: "dark", title: [Quarterly review], subtitle: [Q3 2026], meta: (([Owner], [Platform team]),))[]
 #outline()
 
+#pagebreak()
 = Summary
 #grid(columns: 3, column-gutter: 10pt, kpi([Tickets], [96], foot: [#delta[−20%] vs Q2]), kpi([Hours], [31]), kpi([Uptime], [99.9%]))
 
+#pagebreak()
 = Risks
 #register-table("risk")
 
+#cover(tone: "dark", title: [Annexes], furniture: false)
 #show: annexes
 = Revision history
 #revision-history(([0.1], [1 Sep], [DP], [First draft]))
 ```
 
+### Letter
+
+A letter is a document: the theme's furniture carries the letterhead, and the body is set with the components.
+
+```typ
+#import "@preview/centauri:0.4.0": *
+#show: centauri.with(stage: "review", numbering: none, theme: extend(centauri-theme, (
+  furniture: (header: (left: [*Platform team* · team\@example.com]), footer: (center: none)),
+)))
+
+Ms A. Rao #h(1fr) 3 October 2026
+
+*Renewal terms*
+
+Body of the letter.
+
+Yours sincerely,
+#sig-block([Platform team])
+```
+
 ### Deck
 
 ```typ
-#import "@preview/centauri:0.3.2": *
+#import "@preview/centauri:0.4.0": *
 #show: centauri.with(kind: "deck", accent: "ember", label: "Class 1", date: "Week 1", presenter: "Platform team")
 
 #title-slide(title: [What AI actually is], subtitle: [Four eras and a first call.], facts: ([90 min], [Workshop]))
@@ -830,7 +905,7 @@ The brief uses compact level 1 headings and stops the build if it runs past one 
   #columns-chart(height: 7cm, ([Rules], 61, [61%]), ([TF-IDF], 84, [84%]), ([LLM], 91, [91%]))
 ]
 #notes[Ask the room which they would build first.]
-#exercise(title: [Route four tickets by hand], task: [Assign each ticket a queue.], minutes: 10, output: [A four-row table.])
+#exercise(title: [Route four tickets by hand], task: [Assign each ticket a queue.], minutes: 10, output: [A four-row table.], accent: "teal")
 #close(actions: ([Read the handout], [Bring one real ticket]))
 ```
 
@@ -840,13 +915,14 @@ The brief uses compact level 1 headings and stops the build if it runs past one 
 
 An author or agent generating Centauri source SHOULD check each item before compiling.
 
-1. The import is the only import; every component comes from it.
-2. The document sets exactly one `#show: centauri.with(...)` (or `letter.with(...)`).
-3. A one-page document uses `kind: "brief"`. Content is cut to fit; `max-pages` is not raised to hide an overflow.
-4. No `todo` remains in a document meant for stage `final`; deliberate gaps use `tba`.
-5. Slide titles are sentences in sentence case, at most two lines, with no final full stop.
-6. Each slide carries one message and one exhibit; a second exhibit becomes a second slide.
-7. Tables of text on slides pass `align: left`.
-8. Per-slide accents are set with `accent:` on the slide, not with `use-accent`.
-9. Charts and exhibits carry no title of their own; the slide title interprets them.
-10. The build is compiled with `--font-path fonts` and finishes with no errors and no warnings.
+1. The import is the only import; every component comes from it, or from the brand package built on it.
+2. The document sets exactly one `#show: centauri.with(...)`, or the brand's equivalent.
+3. A level 1 heading that should open a page has a `#pagebreak()` before it.
+4. A document that must fit a page count is cut to fit; nothing checks the count for you.
+5. No `todo` remains in a document meant for stage `final`; deliberate gaps use `tba`.
+6. Slide titles are sentences in sentence case, at most two lines, with no final full stop.
+7. Each slide carries one message and one exhibit; a second exhibit becomes a second slide.
+8. Tables of text on slides pass `align: left`.
+9. Per-slide accents are set with `accent:` on the slide, not with `use-accent`.
+10. Charts and exhibits carry no title of their own; the slide title interprets them.
+11. The build is compiled with the theme's font path and finishes with no errors and no warnings.

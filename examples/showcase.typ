@@ -1,63 +1,63 @@
 #import "/lib.typ": *
 
-#let t = theme()
+#let t = centauri-theme
 
-// Placeholder marks. Real documents pass image(...) or a tone => image(...) function.
-#let mark(name) = tone => {
-  let q = if tone == "dark" { t.dark } else { t.light }
-  box(inset: (x: 7pt, y: 3.5pt), radius: 999pt, stroke: 0.5pt + q.ink-low,
-    text(font: t.fonts.mono, size: 6.5pt, tracking: 0.18em, fill: q.ink-mid, upper(name)))
+// Placeholder marks. Real documents pass image(...), or a function that picks a logo by tone.
+#let mark(name) = () => {
+  let th = theme-now()
+  box(inset: (x: 7pt, y: 3.5pt), radius: 999pt, stroke: 0.5pt + th.colors.ink-low,
+    text(font: th.fonts.label, size: 6.5pt, tracking: 0.18em, fill: th.colors.ink-mid, upper(name)))
 }
 
-#let swatch(c) = box(width: 16pt, height: 9pt, radius: 2pt, fill: c, stroke: 0.5pt + t.light.hairline, baseline: 1.5pt)
+#let swatch(c) = box(width: 16pt, height: 9pt, radius: 2pt, fill: c, stroke: 0.5pt + t.colors.light.hairline, baseline: 1.5pt)
 #let ratio(a, b) = str(calc.round(contrast(a, b), digits: 2)) + ":1"
 
 #show: centauri.with(
+  theme: extend(t, (
+    furniture: (header: (left: mark("Logo left"), right: mark("Logo right"))),
+    sensitivity: (default: "Public"),
+  )),
   title: "Centauri showcase",
   author: "Devansh Parapalli",
   keywords: ("centauri", "proxima", "typst"),
   stage: "draft",
   lint: ("\u{2014}",),
-  header: (left: mark("Logo left"), right: mark("Logo right")),
-  sensitivity: "Public",
-  req-label: "Reference",
 )
 
 #cover(
   title: [Centauri showcase],
   subtitle: [Print and slide design system on Proxima's shared tokens.],
   meta: (
-    ([Version], [0.3.2, released with Proxima 0.3.0]),
+    ([Version], [0.4.0, with the tokens of Proxima 0.3.0]),
     ([Stage], [draft by default; override with `--input stage=review` or `final`]),
-    ([Fonts], [Outfit, Instrument Serif, IBM Plex Mono (OFL-1.1)]),
+    ([Fonts], [Atkinson Hyperlegible Next and Mono, Newsreader (OFL-1.1)]),
     ([Licence], [MIT]),
     ([Compiler], [Typst 0.15]),
   ),
 )[
-  This document exercises every component in Centauri 0.3.2. Each section states what the component does, then renders it.
+  This document exercises every component in Centauri 0.4.0. Each section states what the component does, then renders it.
 ]
 
 #outline(depth: 2)
 
 = Page furniture
 
-Every inner page has three slots above the header rule and three below the footer rule. Each slot takes content, `none`, `auto`, or a function of the page tone, so a logo can swap between light and dark versions on covers.
+Every inner page has three slots above the header rule and three below the footer rule. Each slot takes content, `none`, or a function of no arguments called in context, so a logo can read `theme-now().tone` and swap between light and dark versions on covers.
 
 #data-table(
   columns: (auto, 1fr, 1fr, 1fr),
   header: ([Row], [Left], [Center], [Right]),
-  [Header], [Logo], [Empty, or `auto` for the running head], [Logo],
-  [Footer], [Empty], [`auto`: page as 1/N, then the sensitivity label], [Empty],
+  [Header], [Logo], [Empty, or `current-section` for the running head], [Logo],
+  [Footer], [Empty], [`folio`: page as 1/N, then the sensitivity label], [Empty],
 )
 
-Set the starting furniture on the template. Change it at any point with `furniture()`; keys not passed keep their current value. An update takes effect from the next page header and footer.
+The theme sets the starting furniture. Change it at any point with `furniture()`; keys not passed keep their current value. An update takes effect from the next page.
 
 ```typ
-#show: centauri.with(
-  lint: ("\u{2014}",),
-  header: (left: image("our-logo.svg", height: 14pt), right: image("group.svg", height: 18pt)),
-  sensitivity: "Internal",
-)
+#show: centauri.with(theme: extend(centauri-theme, (
+  furniture: (header: (left: image("our-logo.svg", height: 14pt), right: image("group.svg", height: 18pt))),
+  sensitivity: (default: "Internal"),
+)))
 
 #furniture(
   footer: (left: image("client.svg", height: 11pt), right: [Prepared for Example Client RFP response]),
@@ -81,7 +81,7 @@ This page shows the client logo slot at bottom left, the access note at bottom r
   ([Header left], [Logo slot]),
   ([Header right], [Logo slot]),
   ([Footer left], [Client logo]),
-  ([Footer center], [`auto`: 1/N | Confidential]),
+  ([Footer center], [`folio`: 1/N | Confidential]),
   ([Footer right], [Prepared for Example Client RFP response]),
 )
 
@@ -94,12 +94,12 @@ This page shows the client logo slot at bottom left, the access note at bottom r
 
   #kpi([Services up], [31 / 33], foot: [The same component, dark palette])
 
-  #pill(tone: "mint")[Healthy] #h(4pt) #pill(tone: "amber")[Degraded] #h(4pt) #status("compliant") #h(4pt) #chip[INC-20417]
+  #pill(tone: "success")[Healthy] #h(4pt) #pill(tone: "caution")[Degraded] #h(4pt) #status("compliant") #h(4pt) #chip[INC-20417]
 ]
 
 == Typography
 
-Outfit carries all text and every heading, at weight 380 for body and 480 to 560 for headings. IBM Plex Mono sets labels, identifiers and machine output. Instrument Serif is reserved for quotations and the drop cap. Body copy uses #strong[strong emphasis] sparingly, and links such as #link("https://typst.app")[typst.app] take the contrast-checked link colour.
+Atkinson Hyperlegible Next carries all text and every heading, at weight 400 for body and 500 to 700 for headings. Atkinson Hyperlegible Mono sets labels, identifiers and machine output. Newsreader is reserved for quotations and the drop cap. Body copy uses #strong[strong emphasis] sparingly, and links such as #link("https://typst.app")[typst.app] take the contrast-checked link colour.
 
 
 - Lists use a quiet marker in the low ink colour.
@@ -129,7 +129,7 @@ Heading sizes follow `size(hN) = body × φ^((6 − N) / 3)` for documents, so e
 
 #pull-quote(attribution: [Class 2, the paradigm card])[The cheapest option that meets the error budget wins.]
 
-A sidenote sits in the outer margin in `handbook` documents and becomes a footnote in every other kind.#sidenote[This one is a footnote, because the showcase is a report.]
+Notes go at the foot of the page they belong to, with Typst's own `footnote`.#footnote[Set in the theme's `footnote` element.]
 
 === Glossary
 
@@ -169,8 +169,8 @@ Neutrals lean blue and one saturated accent owns emphasis. Alpha tokens from Pro
   header: ([Token], [Light], [], [Dark], []),
   ..("paper", "cover", "panel", "ink-hi", "ink-mid", "ink-low", "hairline", "accent", "accent-deep", "link").map(k => (
     raw(k),
-    swatch(t.light.at(k)), raw(t.light.at(k).to-hex()),
-    swatch(t.dark.at(k)), raw(t.dark.at(k).to-hex()),
+    swatch(t.colors.light.at(k)), raw(t.colors.light.at(k).to-hex()),
+    swatch(t.colors.dark.at(k)), raw(t.colors.dark.at(k).to-hex()),
   )).flatten(),
 )
 
@@ -180,13 +180,13 @@ Link colour is chosen per accent as the first of accent, accent-deep and ink tha
   columns: (auto, auto, 1fr, auto, auto, 1fr),
   align: (left, left, left, right, left, right),
   header: ([Accent], [Light link], [], [Page / cover], [Dark link], [Ratio]),
-  ..accents.keys().map(a => {
-    let th = theme(accent: a)
+  ..t.accents.keys().map(a => {
+    let (l, d) = (t.colors.light + t.accents.at(a).light, t.colors.dark + t.accents.at(a).dark)
     (
       raw(a),
-      swatch(th.light.link), raw(th.light.link.to-hex()),
-      ratio(th.light.link, th.light.paper) + " / " + ratio(th.light.link, th.light.cover),
-      swatch(th.dark.link), ratio(th.dark.link, th.dark.paper),
+      swatch(l.link), raw(l.link.to-hex()),
+      ratio(l.link, l.paper) + " / " + ratio(l.link, l.cover),
+      swatch(d.link), ratio(d.link, d.paper),
     )
   }).flatten(),
 )
@@ -197,12 +197,12 @@ State text is darkened toward ink when needed so every pill reaches 4.5:1 on its
   columns: (auto, auto, auto, 1fr),
   align: (left, left, left, right),
   header: ([State], [Sample], [Meaning], [Text on fill]),
-  ..(("mint", "Fine"), ("amber", "Look at this soon"), ("rose", "Broken or destructive"), ("sky", "Information")).map(((k, m)) => (
-    raw(k), pill(tone: k)[#m], m, ratio(t.light.at(k).text, t.light.at(k).fill),
+  ..(("success", "Fine"), ("caution", "Look at this soon"), ("danger", "Broken or destructive"), ("info", "Information")).map(((k, m)) => (
+    raw(k), pill(tone: k)[#m], m, ratio(t.colors.light.at(k).text, t.colors.light.at(k).fill),
   )).flatten(),
 )
 
-Pick an accent by building the components from a theme:
+Pick one of the theme's accents:
 
 ```typ
 #show: centauri.with(accent: "teal")        // whole document
@@ -213,9 +213,9 @@ Pick an accent by building the components from a theme:
 
 == Status and emphasis
 
-Every state colour carries a word and a dot. Rose is reserved for broken or destructive states.
+Every state colour carries a word and a dot. Danger is reserved for broken or destructive states.
 
-#pill(tone: "mint")[Healthy] #h(4pt) #pill(tone: "amber")[Degraded] #h(4pt) #pill(tone: "rose")[Down] #h(4pt) #pill(tone: "sky")[Scheduled] #h(4pt) #pill(tone: "mute")[Archived] #h(4pt) #pill(tone: "accent")[Selected]
+#pill(tone: "success")[Healthy] #h(4pt) #pill(tone: "caution")[Degraded] #h(4pt) #pill(tone: "danger")[Down] #h(4pt) #pill(tone: "info")[Scheduled] #h(4pt) #pill(tone: "mute")[Archived] #h(4pt) #pill(tone: "accent")[Selected]
 
 Compliance words map to fixed tones: #status("compliant") #h(3pt) #status("partial") #h(3pt) #status("exception") #h(3pt) #status("noted")
 
@@ -227,10 +227,10 @@ Compliance words map to fixed tones: #status("compliant") #h(3pt) #status("parti
   kpi([P1 incidents], [0], foot: [Last 30 days]),
 )
 
-#callout(tone: "amber", title: [Heads up.])[Callouts hold one short message with a bold lead.]
-#callout(tone: "sky", title: [For information.])[Sky marks neutral information.]
-#callout(tone: "mint", title: [Confirmed.])[Mint confirms that something is fine.]
-#callout(tone: "rose", title: [Blocked.])[Rose is kept for failures and destructive actions.]
+#callout(tone: "caution", title: [Heads up.])[Callouts hold one short message with a bold lead.]
+#callout(tone: "info", title: [For information.])[Info marks neutral information.]
+#callout(tone: "success", title: [Confirmed.])[Success confirms that something is fine.]
+#callout(tone: "danger", title: [Blocked.])[Danger is kept for failures and destructive actions.]
 
 #card[
   A card groups related content inside a hairline border at the large radius. It has no fill, so it prints cleanly on white paper.
@@ -276,9 +276,9 @@ A `figure` caption sets the supplement and number in mono above the caption text
 
 #figure(
   block(width: 100%, inset: (y: 4pt), grid(
-    columns: t.light.charts.len() * (1fr,),
+    columns: t.colors.light.charts.len() * (1fr,),
     column-gutter: 5pt,
-    ..t.light.charts.map(c => rect(width: 100%, height: 22pt, radius: 2pt, fill: c, stroke: none)),
+    ..t.colors.light.charts.map(c => rect(width: 100%, height: 22pt, radius: 2pt, fill: c, stroke: none)),
   )),
   caption: [The five chart colours, held in `charts` on each palette.],
 )
@@ -301,7 +301,7 @@ A `figure` caption sets the supplement and number in mono above the caption text
 
 == Registers
 
-Registers are numbered per kind, can be referenced with labels, and are collected into register tables in the annex. Assumption, dependency and decision entries are neutral; risk uses amber and issue uses rose.
+Registers are numbered per kind, can be referenced with labels, and are collected into register tables in the annex. Assumption, dependency and decision entries are neutral; risk uses caution and issue uses danger.
 
 #assumption[Client provides read access to existing dashboards within two weeks of contract signature.] <asm-access>
 

@@ -1,4 +1,3 @@
-#import "/lib.typ": make-kit, theme
-#let (centauri, ..) = make-kit(theme() + (label-case: "title"))
-#show: centauri.with(stage: "review")
+#import "/lib.typ": *
+#show: centauri.with(stage: "review", theme: extend(centauri-theme, (label-case: "title")))
 Body.

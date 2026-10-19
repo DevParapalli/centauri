@@ -50,7 +50,7 @@ Also adopted from Butterick: pick a base size that fits 12–15 lines and hold i
 | `table` | `table-slide` | Grid of numbers or text | Tabular lining figures, right-aligned numerals by default, `align: left` for text, no vertical rules. |
 | `code` | `code-slide` | Listing, ≤15 lines | Mono face, highlighted lines on a band, no line numbers. |
 | `steps` | `steps-slide` | Numbered sequence | One step may be emphasised with `current`. |
-| `exercise` | `exercise` | Task, time box, expected output | Training-specific; takes a second accent automatically. |
+| `exercise` | `exercise` | Task, time box, expected output | Training-specific; pass `accent:` to set it apart. |
 | `appendix` | `appendix` | Dense evidence | Smaller body size permitted — main deck is the argument, appendix is the evidence library. |
 | `close` | `close` | Next actions, contact | Not "Questions?" or "Thank you." |
 

@@ -1,6 +1,6 @@
 # Centauri
 
-Centauri is the print and slide half of the Proxima design system. It is light-first, builds on the tokens Proxima publishes in `tokens.toml`, and provides page furniture, covers, drafting controls and components for reports, proposals, RFP responses, handbooks, handouts, letters and slide decks.
+Centauri is the print and slide half of the Proxima design system. It supplies the rules (stages, drafting gates, numbering, page furniture, covers and components for documents and slide decks) and its own light-first theme built on the tokens Proxima publishes in `tokens.toml`. A brand package overrides that theme for its own identity and presents the same components in it.
 
 The complete reference for every component, argument and build rule is [`docs/reference.md`](docs/reference.md). It is written to serve as reference material for people and for AI agents generating Centauri source. Deck design rationale is in [`docs/deck-board.md`](docs/deck-board.md).
 
@@ -22,16 +22,16 @@ uv run scripts/sync-tokens.py --check                 # exits 1 when the copy di
 ## Requirements
 
 - Typst 0.15.0 or later.
-- Fonts: Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono (Braille Institute) for text and code, and Newsreader for quotations. All are OFL-1.1 without a Reserved Font Name and are in `fonts/` of the source repository with their licence files. Typefaces are Centauri's own; Proxima sets the same tokens in Outfit for screens. Documents MUST be compiled with these fonts available, for example `typst compile --font-path fonts document.typ`. Without them Typst falls back to other fonts and page breaks change.
+- Fonts: Centauri's theme sets Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono (Braille Institute) for text, labels and code, and Newsreader for quotations. All are OFL-1.1 without a Reserved Font Name and are in `fonts/` of the source repository with their licence files. Typefaces are Centauri's own; Proxima sets the same tokens in Outfit for screens. Documents MUST be compiled with the theme's fonts available, for example `typst compile --font-path fonts document.typ`. Without them Typst falls back to other fonts and page breaks change.
 
 ## Usage
 
 One import serves every kind of output.
 
 ```typ
-#import "@preview/centauri:0.3.2": *
+#import "@preview/centauri:0.4.0": *
 
-#show: centauri.with(kind: "report", accent: "teal", title: "Example report")
+#show: centauri.with(accent: "teal", title: "Example report")
 
 #cover(title: [Example report], meta: (([Owner], [Name]),))[]
 = Scope
@@ -41,7 +41,7 @@ Body text.
 A deck uses the same import and the same components:
 
 ```typ
-#import "@preview/centauri:0.3.2": *
+#import "@preview/centauri:0.4.0": *
 
 #show: centauri.with(kind: "deck", aspect: "16:9", accent: "ember", label: "Class 1")
 
@@ -55,24 +55,29 @@ Before the package is published, or to work against a checkout, import the entry
 
 ## Kinds
 
-`kind` selects defaults. Any default MAY be overridden with the argument of the same name.
+`kind` is `"document"` (the default) or `"deck"`. It picks the engine and the page sizes: a document is A4 or US Letter, portrait or landscape (`paper`, `orientation`), in any number of `columns`; a deck is 16:9 or 4:3 (`aspect`). Everything else is the document's own: a level 1 heading does not start a page, so put `#pagebreak()` where one should; nothing counts pages; notes go at the foot of their page with `footnote`; a letter is a document whose theme furniture carries the letterhead.
 
-| Kind | Orientation | Columns | Level 1 starts a page | Level 1 style | Page limit | Sidenotes |
-|---|---|---|---|---|---|---|
-| `report`, `rfp`, `spec` | portrait | 1 | yes | auto | none | footnotes |
-| `brief` | portrait | 1 | no | compact | 1 | footnotes |
-| `handout` | portrait | 2 | no | auto | none | footnotes |
-| `handbook` | portrait | 1 | yes | auto | none | outer margin |
-| `wallchart` | landscape | 1 | no | auto | none | footnotes |
-| `deck` | 16:9 or 4:3 | 1 | not applicable | not applicable | none | not applicable |
-
-- `paper` is `"a4"` or `"us-letter"`. `orientation` is `"portrait"` or `"landscape"`. A4 and A3 share one ratio, so a landscape page prints on A3 by scaling.
-- When `max-pages` is set, compilation stops if the document is longer.
-- With `h1-style: auto`, a level 1 heading that opens a page is set as a banner: a tinted band across the full page width, the number and title centred, an accent rule beneath. A level 1 heading that falls mid-page, or any level 1 heading in a multi-column layout, sits under a rule with its number beside it.
-- `h1-style: "compact"` sets a level 1 heading at the same size with its number beside it, without the band or the rule, so a page keeps its space for content. `brief` uses it by default.
-- `h1-style: "banner"`, `"rule"` or `"compact"` forces one treatment on every level 1 heading.
+- A level 1 heading that opens a page is set as a banner: a tinted band across the full page width, the number and title centred, an accent rule beneath. A level 1 heading that falls mid-page, or any level 1 heading in a multi-column layout, sits under a rule with its number beside it.
 - Levels 2 to 6 are plain headings. Their numbers are set at the heading's own size and weight in low ink. `heading-numbers: "hang"` outdents numbers into the left margin so titles align with body text; `"none"` omits them.
-- `letter(sender, contact, recipient, date, subject, closing, signature, paper)` is a separate template for correspondence.
+
+## Themes
+
+A theme is one dictionary: colours (light and dark), faces, type scale, strokes, page geometry, a function for each heading level, functions for quotations, code, captions, footnotes and cover backdrops, the starting page furniture, the sensitivity levels, and every fixed word. `centauri-theme` is Centauri's own. A brand overrides it with `extend` and passes the result:
+
+```typ
+#import "@preview/centauri:0.4.0": *
+
+#let brand = extend(centauri-theme, (
+  fonts: (heading: ("Newsreader 16pt",)),
+  furniture: (header: (left: [Brand], center: current-section)),
+  sensitivity: (default: "Internal", levels: ("Public", "Internal", "Confidential")),
+))
+#show: centauri.with(theme: brand)
+= Scope
+Body text.
+```
+
+A misspelled key stops the build and names it. Theme functions and brand code read the theme in force with `theme-now()` inside `context`; `colors` there is already resolved for the page's tone and accent. `examples/lol/` is a complete brand package; [`docs/reference.md`](docs/reference.md#8-themes) lists every key.
 
 ## Type
 
@@ -85,30 +90,30 @@ Heading sizes follow `size(hN) = body × φ^((6 − N) / k)`, so h6 is body size
 
 Weight falls as size rises in both scales. Documents set h1 at 500 and h6 at 700; decks set display type at 300.
 
-Every heading is set in Atkinson Hyperlegible Next. Newsreader is used only for quotations (`pull-quote`, `epigraph`, block `quote`) and `drop-cap`. `theme(document: (body: 11pt, k: 3))` changes a scale; for example, a handout printed at A5 SHOULD use a 13 to 14 pt body.
+Every heading is set in Atkinson Hyperlegible Next. Newsreader is used only for quotations (`pull-quote`, `epigraph`, block `quote`) and `drop-cap`. `extend(centauri-theme, (type: (document: (body: 11pt))))` changes a scale; for example, a handout printed at A5 SHOULD use a 13 to 14 pt body.
 
 ## Accents
 
-Every Proxima accent (`indigo`, `teal`, `ember`, `lime`) is available in both tones. The accent MAY be set:
+Centauri's theme carries every Proxima accent (`indigo`, `teal`, `ember`, `lime`) in both tones. The accent MAY be set:
 
 - for the whole document, with `centauri(accent: "teal")`;
-- for one cover, slide or part, with `accent: "ember"` on that call;
+- for one cover or slide, with `accent: "ember"` on that call;
 - from a point onward, with `use-accent("lime")` (documents only; in a deck, set `accent:` on each slide instead);
 - for one passage, with `with-accent("indigo")[...]`.
 
-The link colour for each accent is the first of accent, accent-deep and ink that reaches 4.5:1 on both the page and the cover ground. Compilation stops if a theme override breaks that.
+The link colour for each accent is the first of accent, accent-deep and ink that reaches 4.5:1 on both the page and the cover ground. Compilation stops if a theme breaks that. A brand theme MAY set `accents: none`; asking it for an accent then stops the build.
 
 ## Page furniture
 
-Inner pages have left, centre and right slots above the header rule and below the footer rule. Each slot takes content, `none`, `auto`, or a function of the page tone. The header centre is empty by default; `auto` there opts in to the running head (the level 1 heading in force). `auto` in the footer centre is the page number followed by the sensitivity label. Set slots with `centauri(header: (center: [...]))`; change them from any point with `furniture(header: (center: [...]))`. Slots set on `centauri` apply from page 1, whatever the page opens with.
+Inner pages have left, centre and right slots above the header rule and below the footer rule. Each slot takes content, `none`, or a function of no arguments called in context. The theme's `furniture` sets them from page 1; Centauri's puts `folio` (the page as `n/N`, then the sensitivity) in the footer centre and leaves the rest empty, and `current-section` is the running head for any slot. `furniture(header: (center: [...]), sensitivity: "Confidential")` changes slots, rules and the sensitivity from the next page on. The theme's `page` places the rules by their distance from the paper's edges.
 
 ## Covers
 
-`cover(tone, accent, title, subtitle, meta, heading, furniture, bloom)[body]` produces a full page and MAY appear anywhere. With `heading: true` the title becomes a numbered level 1 heading and is listed in the contents. Covers carry an accent bloom by default; `bloom: false` prints a flat ground.
+`cover(tone, accent, title, subtitle, meta, heading, furniture, backdrop)[body]` produces a full page; where it is placed makes it a front cover, a divider or a back cover. With `heading: true` the title becomes a numbered level 1 heading and is listed in the contents. `backdrop` is drawn behind the page: `auto` for the theme's (Centauri's is an accent bloom), `none` for a flat ground, an image or any content, or a function called with the cover's tone in force.
 
 ## Components
 
-Documents and decks share: `chip`, `pill`, `status`, `delta`, `callout`, `rule-note`, `card`, `kpi`, `kv`, `data-table`, `qa-table`, `compliance-matrix`, `sig-block`, `req`, `todo`, `tba`, `note`, `assumption`, `dependency`, `decision`, `risk`, `issue`, `register-table`, `annexes`, `pull-quote`, `epigraph`, `drop-cap`, `sidenote`, `glossary`, `revision-history`, `request-list`, `current-section`, `part`, `furniture`, `use-accent`, `with-accent`.
+Documents and decks share: `chip`, `pill`, `status`, `delta`, `callout`, `rule-note`, `card`, `kpi`, `kv`, `data-table`, `qa-table`, `compliance-matrix`, `sig-block`, `req`, `todo`, `tba`, `note`, `warn`, `assumption`, `dependency`, `decision`, `risk`, `issue`, `register-table`, `annexes`, `pull-quote`, `epigraph`, `drop-cap`, `glossary`, `revision-history`, `request-list`, `furniture`, `use-accent`, `with-accent`. Tones are `success`, `caution`, `danger` and `info`, with `mute` and `accent`.
 
 Decks follow the design board in `docs/deck-board.md` and Proxima's primitives: assertion–evidence content slides (a sentence title stating the takeaway, then one exhibit), one message per slide, a single body size, left-aligned text, and quiet chrome.
 
@@ -150,7 +155,7 @@ Weight falls as size rises: display and h1 are set at 300–320, small headings 
 | `bars-chart(..bars)` | Horizontal bars as `(label, value, pill)`. A bar is never narrower than 2.4cm, so its value pill fits; a very small value reads slightly longer than its true length, and the pill carries the exact figure. |
 | `split(title, sub, ..items)` | Accent panel with the title on the left, numbered tiles on the right. |
 | `display-slide(title, sub)[word]` | One word or phrase scaled to fill the column. |
-| `code-slide`, `steps-slide`, `exercise`, `appendix`, `close` | As named; `exercise` takes a second accent. |
+| `code-slide`, `steps-slide`, `exercise`, `appendix`, `close` | As named; pass `accent:` to set an `exercise` apart. |
 | `columns-chart(height, ..items)` | Rising columns with the value inside and the label in a pill. |
 | `tile[body]` | Plain tonal card for use inside a slide body. |
 | `stats`, `metric`, `cols`, `hl`, `notes` | Helpers. |
@@ -168,6 +173,22 @@ Output modes are selected with `--input mode=`:
 `notes[...]` carries the speaker script. It appears in handouts, and on the slides only with `--input notes=true`.
 
 Code blocks are highlighted with a theme generated from the palette in force, so highlighting follows the accent and the tone.
+
+## Changes in 0.4.0
+
+Centauri becomes an engine with its own theme, so brand packages can restyle it without wrapping it. Documents written for 0.3 need the changes below.
+
+- `theme:` on `centauri` takes a theme dictionary; `centauri-theme` is Centauri's own, and `extend` overrides parts of it. Unknown keys stop the build. `theme()`, `make-kit`, `kit`, `scale`, `phi` and `accents` are removed.
+- Headings are drawn by the theme's `h1` to `h6` functions, and quotations, code blocks, captions, footnotes and cover backdrops by its `elements`. `heading-number`, `at-page-top`, `label-text` and `palette` help write them.
+- `theme-now()` and `themed()` give the theme in force, with colours resolved for the page's tone and accent, to theme functions and brand code.
+- Colours are named in the theme as `success`, `caution`, `danger` and `info` (were `mint`, `amber`, `rose`, `sky`); `pill`, `callout` and `tone` arguments take the new names.
+- `kind` is `"document"` or `"deck"`. The other kinds, `h1-pagebreak`, `h1-style`, `max-pages` and `sidenotes` are removed: put `#pagebreak()` before a heading that should open a page, and use `footnote`.
+- Furniture, sensitivity and page geometry come from the theme. `header`, `footer`, `sensitivity`, `header-rule`, `footer-rule`, `folio` and `req-label` are removed from `centauri`. Slots take content, `none` or a function of no arguments; `auto` in a slot is removed, and `folio` and `current-section` are slot functions. A `furniture` change takes effect on the next page for everything, `theme-now` included. A theme MAY list sensitivity `levels`; any other value stops the build.
+- `cover(backdrop:)` replaces `bloom:` and takes an image or any content as well. `part`, `letter` and the `annexes` divider are removed: place a `cover`. `annexes` sets numbering and the reference word only.
+- `warn[...]` prints a draft-only remark that takes no space.
+- Every fixed word (contents title, watermark, annex word, drafting-note lead, table headers, register words and prefixes, status words, signature lines, deck words) comes from the theme's `words`.
+- `exercise` keeps the deck accent unless given `accent:`.
+- The tests run with `uv run tests/run.py` and need only `typst` and `uv`.
 
 ## Changes in 0.3.2
 
@@ -206,15 +227,20 @@ Code blocks are highlighted with a theme generated from the palette in force, so
 
 ## Tests
 
-`tests/run.sh`, run from the repository root, MUST pass before a release. It requires `typst`, poppler (`pdftotext`, `pdftocairo`, `pdftoppm`, `pdfinfo`) and `uv`, and checks that:
+`uv run tests/run.py` MUST pass before a release. It needs `typst` and `uv`; `uv` installs pypdf and Pillow for the run. It checks that:
 
 - the examples and test documents build with no errors and no warnings, decks in every output mode and both projections;
-- each build rule stops the build with its own error: page limit, unresolved `todo`, lint match, low link contrast, slide overflow, a title ending in a full stop, and an unknown `h1-style`;
-- page furniture, including on page 1, its rules and the folio, and figure captions print the expected text;
-- `annexes` restarts numbering in its patterns, prints its reference word and draws a divider only when titled;
+- each build rule stops the build with its own error: unresolved `todo`, lint match, low link contrast, slide overflow, a title ending in a full stop, an unknown or missing theme key, a sensitivity outside the theme's levels, an accent the theme lacks, and an unknown `kind`;
+- page furniture, including on page 1, its rules, the folio and the sensitivity in the header, and figure captions print the expected text, and a `furniture` change reaches the next page;
+- theme heading functions draw the headings, with their numbers;
+- `annexes` restarts numbering in its patterns and prints its reference word, the caller's or the theme's;
+- a cover draws no backdrop, content, or a function that sees the cover's tone;
+- `warn` prints in draft only and moves nothing;
 - `fit-logo` and `logo-line` cap logos, and `logo-line` centres an image and a text box on the line's capitals within a pixel;
 - every complete example in `README.md` and `docs/reference.md` builds;
 - `docs/reference.md` documents every name `lib.typ` exports, and no other.
+
+`tests/checks.py` holds the build and PDF checks the suite uses. The repository is open: a brand package that wants the same checks downloads `tests/` from it, or vendors Centauri as a git submodule, and imports `checks.py` from its own runner.
 
 ## Licence
 

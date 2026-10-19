@@ -1,6 +1,5 @@
-#import "/lib.typ": make-kit, theme
-#let (centauri, kv, risk, ..) = make-kit(theme() + (label-case: "as-written"))
-#show: centauri.with(stage: "review")
+#import "/lib.typ": *
+#show: centauri.with(stage: "review", theme: extend(centauri-theme, (label-case: "as-written")))
 = Label case
 #figure(rect(width: 4cm, height: 1.5cm), caption: [An ordinary figure.])
 #kv(([Owner key], [Value]))

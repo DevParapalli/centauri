@@ -1,5 +1,5 @@
 #import "/lib.typ": *
-#show: centauri.with(stage: "review", h1-pagebreak: false)
+#show: centauri.with(stage: "review")
 Page one keeps the default hairlines.
 #furniture(header-rule: none, footer-rule: 2pt + rgb("#ff0000"))
 #pagebreak()
